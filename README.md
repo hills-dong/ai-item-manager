@@ -8,7 +8,7 @@ AI 智能物品识别与卡通风格化应用 - 上传照片，自动识别物�
 
 ## 在线访问
 
-**GitHub Pages**: https://hills-dong.github.io/conductor-playground/
+**GitHub Pages**: https://hills-dong.github.io/ai-item-manager/
 
 ## 功能特性
 
