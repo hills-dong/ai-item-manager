@@ -287,11 +287,14 @@
                                     text: `请分析这张照片，识别其中的所有物品。
 以 JSON 数组格式返回，每个物品包含：
 - name: 物品名称（中文）
-- nameEn: 物品名称（英文，用于生成图片）
+- nameEn: 物品名称（英文）
 - description: 简短描述（中文）
+- color: 主要颜色（英文，如 "silver", "black", "red and white"）
+- shape: 形状特征（英文，如 "rectangular", "round", "cylindrical"）
+- style: 风格特征（英文，如 "modern", "vintage", "minimalist"）
 
 只返回 JSON 数组，不要其他文字。示例格式：
-[{"name": "笔记本电脑", "nameEn": "laptop", "description": "银色的苹果笔记本"}]`
+[{"name": "笔记本电脑", "nameEn": "laptop", "description": "银色的苹果笔记本", "color": "silver", "shape": "thin rectangular", "style": "modern minimalist"}]`
                                 },
                                 {
                                     inline_data: {
@@ -382,7 +385,11 @@
                     body: JSON.stringify({
                         contents: [{
                             parts: [{
-                                text: `Generate a cute cartoon-style illustration of a ${item.nameEn}. Simple design, clean white background, vibrant colors, suitable for a sticker or icon, kawaii style.`
+                                text: `Generate a cute cartoon-style illustration of a ${item.nameEn}.
+Color: ${item.color || 'original colors'}.
+Shape: ${item.shape || 'as shown'}.
+Style: ${item.style || 'modern'}.
+Keep the exact color scheme and shape from the description. Simple design, clean white background, kawaii style, suitable for a sticker or icon.`
                             }]
                         }],
                         generationConfig: {
