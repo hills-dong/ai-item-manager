@@ -316,25 +316,44 @@ Return ONLY the JSON array, no other text. Example:
                     jsonStr = codeBlockMatch[1].trim();
                 }
 
-                // Try to find JSON array
-                const jsonMatch = jsonStr.match(/\[[\s\S]*?\]/);
-                if (!jsonMatch) {
+                // Try to find JSON array - use greedy match and find matching brackets
+                let startIdx = jsonStr.indexOf('[');
+                if (startIdx === -1) {
                     console.error('No JSON array found in:', jsonStr);
                     throw new Error('无法解析识别结果，请重试');
                 }
 
+                // Find the matching closing bracket
+                let depth = 0;
+                let endIdx = -1;
+                for (let i = startIdx; i < jsonStr.length; i++) {
+                    if (jsonStr[i] === '[') depth++;
+                    if (jsonStr[i] === ']') depth--;
+                    if (depth === 0) {
+                        endIdx = i;
+                        break;
+                    }
+                }
+
+                if (endIdx === -1) {
+                    console.error('No matching bracket found in:', jsonStr);
+                    throw new Error('无法解析识别结果，请重试');
+                }
+
                 // Clean up the JSON string
-                let cleanJson = jsonMatch[0]
+                let cleanJson = jsonStr.substring(startIdx, endIdx + 1)
                     .replace(/,\s*]/g, ']')  // Remove trailing commas
                     .replace(/,\s*}/g, '}')  // Remove trailing commas in objects
                     .replace(/[\x00-\x1F\x7F]/g, ' '); // Remove control characters
+
+                console.log('Cleaned JSON:', cleanJson);
 
                 try {
                     identifiedItems = JSON.parse(cleanJson);
                 } catch (parseError) {
                     console.error('JSON parse error:', parseError);
                     console.error('Attempted to parse:', cleanJson);
-                    throw new Error('JSON 格式错误，请重试');
+                    throw new Error('JSON 格式错误，请查看控制台');
                 }
 
                 if (!identifiedItems.length) {
