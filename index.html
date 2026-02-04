@@ -319,13 +319,33 @@
                 const data = await response.json();
                 const text = data.candidates[0].content.parts[0].text;
 
-                // Parse JSON from response
-                const jsonMatch = text.match(/\[[\s\S]*\]/);
-                if (!jsonMatch) {
-                    throw new Error('无法解析识别结果');
+                // Parse JSON from response - handle markdown code blocks
+                let jsonStr = text;
+
+                // Remove markdown code block if present
+                const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+                if (codeBlockMatch) {
+                    jsonStr = codeBlockMatch[1].trim();
                 }
 
-                identifiedItems = JSON.parse(jsonMatch[0]);
+                // Try to find JSON array
+                const jsonMatch = jsonStr.match(/\[[\s\S]*\]/);
+                if (!jsonMatch) {
+                    console.error('Raw response:', text);
+                    throw new Error('无法解析识别结果，请重试');
+                }
+
+                try {
+                    identifiedItems = JSON.parse(jsonMatch[0]);
+                } catch (parseError) {
+                    console.error('JSON parse error:', parseError, 'Raw:', jsonMatch[0]);
+                    throw new Error('JSON 格式错误，请重试');
+                }
+
+                if (!identifiedItems.length) {
+                    throw new Error('未识别到任何物品');
+                }
+
                 displayItems();
 
             } catch (error) {
