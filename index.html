@@ -40,6 +40,19 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        input[type="text"],
+        input[type="password"] {
+            -webkit-user-select: text;
+            user-select: text;
+            pointer-events: auto;
+            cursor: text;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: 2px solid var(--accent-primary);
+            outline-offset: -1px;
+        }
+
         body {
             font-family: Helvetica, Arial, sans-serif;
             background: var(--bg-primary);
