@@ -42,9 +42,78 @@
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
         }
+        .item-card {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .item-card.selected {
+            ring: 3px;
+            ring-color: #8b5cf6;
+            box-shadow: 0 0 0 3px #8b5cf6;
+        }
+        .item-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .style-bar {
+            transition: all 0.3s ease;
+        }
+        .style-bar.sticky {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .style-btn {
+            transition: all 0.2s ease;
+        }
+        .style-btn.active {
+            background-color: #8b5cf6;
+            color: white;
+            border-color: #8b5cf6;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
+    <!-- Sticky Style Bar (hidden until items are recognized) -->
+    <div id="styleBar" class="style-bar bg-white border-b border-gray-200 p-4 hidden">
+        <div class="container mx-auto max-w-4xl">
+            <div class="flex flex-wrap items-center gap-2 mb-3">
+                <!-- Selection controls -->
+                <button id="selectAllBtn" class="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200">全选</button>
+                <button id="deselectAllBtn" class="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200">取消全选</button>
+                <span id="selectionCount" class="text-xs text-gray-500 ml-2">已选择 0 项</span>
+                <div class="flex-1"></div>
+                <button id="applyStyleBtn" class="px-4 py-1.5 text-sm bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed">
+                    应用风格
+                </button>
+            </div>
+            <!-- Style options -->
+            <div class="flex flex-wrap gap-2 mb-2" id="styleOptions">
+                <button class="style-btn px-3 py-1.5 text-xs border border-gray-300 rounded-lg active" data-style="kawaii">可爱萌系</button>
+                <button class="style-btn px-3 py-1.5 text-xs border border-gray-300 rounded-lg" data-style="pixel">像素风格</button>
+                <button class="style-btn px-3 py-1.5 text-xs border border-gray-300 rounded-lg" data-style="watercolor">水彩手绘</button>
+                <button class="style-btn px-3 py-1.5 text-xs border border-gray-300 rounded-lg" data-style="flat">扁平极简</button>
+                <button class="style-btn px-3 py-1.5 text-xs border border-gray-300 rounded-lg" data-style="anime">日系动漫</button>
+                <button class="style-btn px-3 py-1.5 text-xs border border-gray-300 rounded-lg" data-style="sketch">素描线稿</button>
+                <button class="style-btn px-3 py-1.5 text-xs border border-gray-300 rounded-lg" data-style="3d">3D卡通</button>
+                <button class="style-btn px-3 py-1.5 text-xs border border-gray-300 rounded-lg" data-style="oilpaint">油画风格</button>
+                <button class="style-btn px-3 py-1.5 text-xs border border-gray-300 rounded-lg" data-style="pop">波普艺术</button>
+                <button class="style-btn px-3 py-1.5 text-xs border border-gray-300 rounded-lg" data-style="lowpoly">低多边形</button>
+                <button class="style-btn px-3 py-1.5 text-xs border border-gray-300 rounded-lg" data-style="custom">自定义</button>
+            </div>
+            <!-- Custom style input -->
+            <div id="customStyleInput" class="hidden">
+                <input type="text" id="customPrompt" placeholder="输入自定义风格描述，如：赛博朋克风格、中国水墨画风格..."
+                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+            </div>
+        </div>
+    </div>
+    <!-- Placeholder for sticky bar -->
+    <div id="styleBarPlaceholder" class="hidden"></div>
+
     <div class="container mx-auto px-4 py-8 max-w-4xl">
         <!-- Header -->
         <header class="text-center mb-8">
@@ -106,28 +175,6 @@
                     重新上传
                 </button>
             </div>
-
-            <!-- Cartoon Style Selection (Default) -->
-            <div class="mt-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">默认卡通风格 <span class="text-gray-400 font-normal">(可在每个物品单独选择)</span></label>
-                <div class="grid grid-cols-5 gap-2" id="styleSelector">
-                    <button class="style-btn px-3 py-2 text-xs border-2 border-purple-500 bg-purple-50 text-purple-700 rounded-lg" data-style="kawaii">
-                        可爱萌系
-                    </button>
-                    <button class="style-btn px-3 py-2 text-xs border border-gray-300 rounded-lg hover:border-purple-300" data-style="pixel">
-                        像素风格
-                    </button>
-                    <button class="style-btn px-3 py-2 text-xs border border-gray-300 rounded-lg hover:border-purple-300" data-style="watercolor">
-                        水彩手绘
-                    </button>
-                    <button class="style-btn px-3 py-2 text-xs border border-gray-300 rounded-lg hover:border-purple-300" data-style="flat">
-                        扁平极简
-                    </button>
-                    <button class="style-btn px-3 py-2 text-xs border border-gray-300 rounded-lg hover:border-purple-300" data-style="anime">
-                        日系动漫
-                    </button>
-                </div>
-            </div>
         </section>
 
         <!-- Progress -->
@@ -140,7 +187,10 @@
 
         <!-- Results -->
         <section id="resultsSection" class="hidden">
-            <h2 class="text-lg font-semibold text-gray-700 mb-4">识别结果</h2>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-700">识别结果</h2>
+                <p class="text-sm text-gray-500">点击选择物品，然后在顶部选择风格</p>
+            </div>
             <div id="itemsGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 <!-- Items will be inserted here -->
             </div>
@@ -157,6 +207,7 @@
         let apiKey = localStorage.getItem('gemini_api_key') || '';
         let uploadedImage = null;
         let identifiedItems = [];
+        let selectedItems = new Set();
         let selectedStyle = 'kawaii';
 
         // Style prompts - all preserve original color scheme
@@ -166,7 +217,12 @@
             pixel: "This image contains a {ITEM}. Transform ONLY the {ITEM} into pixel art style. White background. Remove ALL other objects, keep ONLY the {ITEM}. IMPORTANT: Preserve the original color scheme. 16-bit retro game aesthetic, blocky pixels, clear outlines.",
             watercolor: "This image contains a {ITEM}. Transform ONLY the {ITEM} into watercolor painting style. White background. Remove ALL other objects, keep ONLY the {ITEM}. IMPORTANT: Preserve the original color scheme. Soft brush strokes, gentle color blending, artistic hand-painted look.",
             flat: "This image contains a {ITEM}. Transform ONLY the {ITEM} into flat design illustration. White background. Remove ALL other objects, keep ONLY the {ITEM}. IMPORTANT: Preserve the original color scheme. Minimal details, solid colors, no gradients, clean geometric shapes, modern minimalist style.",
-            anime: "This image contains a {ITEM}. Transform ONLY the {ITEM} into Japanese anime style. White background. Remove ALL other objects, keep ONLY the {ITEM}. IMPORTANT: Preserve the original color scheme. Clean lines, dramatic shading, manga-inspired aesthetic."
+            anime: "This image contains a {ITEM}. Transform ONLY the {ITEM} into Japanese anime style. White background. Remove ALL other objects, keep ONLY the {ITEM}. IMPORTANT: Preserve the original color scheme. Clean lines, dramatic shading, manga-inspired aesthetic.",
+            sketch: "This image contains a {ITEM}. Transform ONLY the {ITEM} into pencil sketch style. White background. Remove ALL other objects, keep ONLY the {ITEM}. Black and white pencil drawing, detailed line work, artistic shading, hand-drawn look.",
+            '3d': "This image contains a {ITEM}. Transform ONLY the {ITEM} into 3D cartoon render style. White background. Remove ALL other objects, keep ONLY the {ITEM}. IMPORTANT: Preserve the original color scheme. Pixar/Disney 3D animation style, smooth surfaces, soft lighting.",
+            oilpaint: "This image contains a {ITEM}. Transform ONLY the {ITEM} into oil painting style. White background. Remove ALL other objects, keep ONLY the {ITEM}. IMPORTANT: Preserve the original color scheme. Visible brush strokes, rich textures, classical painting aesthetic.",
+            pop: "This image contains a {ITEM}. Transform ONLY the {ITEM} into pop art style. White background. Remove ALL other objects, keep ONLY the {ITEM}. Bold colors, Ben-Day dots, high contrast, Andy Warhol inspired.",
+            lowpoly: "This image contains a {ITEM}. Transform ONLY the {ITEM} into low poly style. White background. Remove ALL other objects, keep ONLY the {ITEM}. IMPORTANT: Preserve the original color scheme. Geometric triangular facets, minimal polygons, modern 3D art style."
         };
 
         // DOM Elements
@@ -187,6 +243,14 @@
         const itemsGrid = document.getElementById('itemsGrid');
         const errorMessage = document.getElementById('errorMessage');
         const errorText = document.getElementById('errorText');
+        const styleBar = document.getElementById('styleBar');
+        const styleBarPlaceholder = document.getElementById('styleBarPlaceholder');
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        const deselectAllBtn = document.getElementById('deselectAllBtn');
+        const selectionCount = document.getElementById('selectionCount');
+        const applyStyleBtn = document.getElementById('applyStyleBtn');
+        const customStyleInput = document.getElementById('customStyleInput');
+        const customPrompt = document.getElementById('customPrompt');
 
         // Initialize
         function init() {
@@ -217,18 +281,74 @@
             analyzeBtn.addEventListener('click', analyzeImage);
             resetBtn.addEventListener('click', resetUpload);
 
-            // Style selection
-            document.querySelectorAll('.style-btn').forEach(btn => {
+            // Style bar - style selection
+            document.querySelectorAll('#styleOptions .style-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    document.querySelectorAll('.style-btn').forEach(b => {
-                        b.classList.remove('border-purple-500', 'bg-purple-50', 'text-purple-700', 'border-2');
-                        b.classList.add('border-gray-300');
-                    });
-                    btn.classList.remove('border-gray-300');
-                    btn.classList.add('border-purple-500', 'bg-purple-50', 'text-purple-700', 'border-2');
+                    document.querySelectorAll('#styleOptions .style-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
                     selectedStyle = btn.dataset.style;
+                    // Show/hide custom input
+                    if (selectedStyle === 'custom') {
+                        customStyleInput.classList.remove('hidden');
+                    } else {
+                        customStyleInput.classList.add('hidden');
+                    }
                 });
             });
+
+            // Selection controls
+            selectAllBtn.addEventListener('click', selectAll);
+            deselectAllBtn.addEventListener('click', deselectAll);
+            applyStyleBtn.addEventListener('click', applyStyleToSelected);
+
+            // Sticky bar on scroll
+            window.addEventListener('scroll', handleScroll);
+        }
+
+        function handleScroll() {
+            if (!styleBar.classList.contains('hidden')) {
+                const barRect = styleBarPlaceholder.getBoundingClientRect();
+                if (barRect.top <= 0) {
+                    styleBar.classList.add('sticky');
+                    styleBarPlaceholder.style.height = styleBar.offsetHeight + 'px';
+                    styleBarPlaceholder.classList.remove('hidden');
+                } else {
+                    styleBar.classList.remove('sticky');
+                    styleBarPlaceholder.classList.add('hidden');
+                    styleBarPlaceholder.style.height = '0';
+                }
+            }
+        }
+
+        function updateSelectionCount() {
+            selectionCount.textContent = `已选择 ${selectedItems.size} 项`;
+            applyStyleBtn.disabled = selectedItems.size === 0;
+        }
+
+        function toggleItemSelection(index) {
+            if (selectedItems.has(index)) {
+                selectedItems.delete(index);
+            } else {
+                selectedItems.add(index);
+            }
+            updateCardSelection(index);
+            updateSelectionCount();
+        }
+
+        function selectAll() {
+            identifiedItems.forEach((_, index) => {
+                selectedItems.add(index);
+                updateCardSelection(index);
+            });
+            updateSelectionCount();
+        }
+
+        function deselectAll() {
+            selectedItems.forEach(index => {
+                updateCardSelection(index);
+            });
+            selectedItems.clear();
+            updateSelectionCount();
         }
 
         function saveApiKey() {
@@ -296,8 +416,11 @@
             resetBtn.classList.add('hidden');
             fileInput.value = '';
             resultsSection.classList.add('hidden');
+            styleBar.classList.add('hidden');
+            styleBarPlaceholder.classList.add('hidden');
             itemsGrid.innerHTML = '';
             identifiedItems = [];
+            selectedItems.clear();
         }
 
         async function analyzeImage() {
@@ -418,14 +541,18 @@ Return ONLY the JSON array, no other text. Example:
 
         function displayItems() {
             resultsSection.classList.remove('hidden');
+            styleBar.classList.remove('hidden');
             itemsGrid.innerHTML = '';
+            selectedItems.clear();
+            updateSelectionCount();
 
             // Load original image to crop items
             const img = new Image();
             img.onload = () => {
                 identifiedItems.forEach((item, index) => {
                     const card = document.createElement('div');
-                    card.className = 'bg-white rounded-lg shadow-md overflow-hidden card-enter';
+                    card.id = `card-${index}`;
+                    card.className = 'item-card bg-white rounded-lg shadow-md overflow-hidden card-enter';
                     card.style.animationDelay = `${index * 0.1}s`;
 
                     // Create cropped image from bbox
@@ -450,33 +577,67 @@ Return ONLY the JSON array, no other text. Example:
                     item.croppedDataUrl = croppedDataUrl;
 
                     card.innerHTML = `
-                        <div class="aspect-square bg-gray-100 flex items-center justify-center overflow-hidden" id="image-${index}">
+                        <div class="aspect-square bg-gray-100 flex items-center justify-center overflow-hidden relative" id="image-${index}">
                             ${croppedDataUrl
                                 ? `<img src="${croppedDataUrl}" class="w-full h-full object-contain" alt="${item.name}">`
                                 : `<svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                 </svg>`
                             }
+                            <div class="absolute top-2 right-2 w-6 h-6 rounded-full border-2 border-white bg-white/80 flex items-center justify-center check-mark">
+                                <svg class="w-4 h-4 text-purple-500 hidden" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
                         </div>
                         <div class="p-3">
                             <h3 class="font-medium text-gray-800 truncate">${item.name}</h3>
-                            <p class="text-sm text-gray-500 truncate mb-2">${item.description}</p>
-                            <select id="style-${index}" class="w-full text-xs border border-gray-300 rounded px-2 py-1 mb-2">
-                                <option value="kawaii" ${selectedStyle === 'kawaii' ? 'selected' : ''}>可爱萌系</option>
-                                <option value="pixel" ${selectedStyle === 'pixel' ? 'selected' : ''}>像素风格</option>
-                                <option value="watercolor" ${selectedStyle === 'watercolor' ? 'selected' : ''}>水彩手绘</option>
-                                <option value="flat" ${selectedStyle === 'flat' ? 'selected' : ''}>扁平极简</option>
-                                <option value="anime" ${selectedStyle === 'anime' ? 'selected' : ''}>日系动漫</option>
-                            </select>
-                            <button onclick="generateCartoon(${index})" id="gen-btn-${index}" class="w-full text-xs bg-purple-500 text-white rounded px-2 py-1.5 hover:bg-purple-600 transition-colors">
-                                生成卡通
-                            </button>
+                            <p class="text-sm text-gray-500 truncate">${item.description}</p>
                         </div>
                     `;
+
+                    // Click to select
+                    card.addEventListener('click', () => toggleItemSelection(index));
+
                     itemsGrid.appendChild(card);
                 });
             };
             img.src = uploadedImage;
+        }
+
+        function updateCardSelection(index) {
+            const card = document.getElementById(`card-${index}`);
+            if (card) {
+                const checkMark = card.querySelector('.check-mark svg');
+                if (selectedItems.has(index)) {
+                    card.classList.add('selected');
+                    if (checkMark) checkMark.classList.remove('hidden');
+                } else {
+                    card.classList.remove('selected');
+                    if (checkMark) checkMark.classList.add('hidden');
+                }
+            }
+        }
+
+        async function applyStyleToSelected() {
+            if (selectedItems.size === 0) {
+                showError('请先选择要风格化的物品');
+                return;
+            }
+
+            const itemsToProcess = Array.from(selectedItems);
+            applyStyleBtn.disabled = true;
+            applyStyleBtn.textContent = `处理中 0/${itemsToProcess.length}`;
+
+            let processed = 0;
+            for (const index of itemsToProcess) {
+                await generateCartoon(index);
+                processed++;
+                applyStyleBtn.textContent = `处理中 ${processed}/${itemsToProcess.length}`;
+            }
+
+            applyStyleBtn.textContent = '应用风格';
+            applyStyleBtn.disabled = selectedItems.size === 0;
         }
 
         async function generateCartoon(index) {
@@ -484,23 +645,32 @@ Return ONLY the JSON array, no other text. Example:
             if (!item || !item.croppedDataUrl) return;
 
             const imageContainer = document.getElementById(`image-${index}`);
-            const genBtn = document.getElementById(`gen-btn-${index}`);
-            const styleSelect = document.getElementById(`style-${index}`);
             if (!imageContainer) return;
 
-            // Get selected style for this item
-            const itemStyle = styleSelect ? styleSelect.value : 'kawaii';
-
             // Show loading state
-            genBtn.disabled = true;
-            genBtn.textContent = '生成中...';
+            const originalContent = imageContainer.innerHTML;
+            imageContainer.innerHTML = `
+                <div class="generating-placeholder w-full h-full flex items-center justify-center">
+                    <div class="spinner"></div>
+                </div>
+            `;
 
             try {
                 const base64Data = item.croppedDataUrl.split(',')[1];
                 const mimeType = item.croppedDataUrl.split(';')[0].split(':')[1];
 
-                // Replace {ITEM} placeholder with actual item name
-                const prompt = stylePrompts[itemStyle].replace(/\{ITEM\}/g, item.nameEn || item.name);
+                // Get prompt based on selected style
+                let prompt;
+                if (selectedStyle === 'custom') {
+                    const customText = customPrompt.value.trim();
+                    if (!customText) {
+                        throw new Error('请输入自定义风格描述');
+                    }
+                    prompt = `This image contains a {ITEM}. Transform ONLY the {ITEM} into ${customText}. White background. Remove ALL other objects, keep ONLY the {ITEM}. IMPORTANT: Preserve the original color scheme.`;
+                } else {
+                    prompt = stylePrompts[selectedStyle];
+                }
+                prompt = prompt.replace(/\{ITEM\}/g, item.nameEn || item.name);
 
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`, {
                     method: 'POST',
@@ -510,9 +680,7 @@ Return ONLY the JSON array, no other text. Example:
                     body: JSON.stringify({
                         contents: [{
                             parts: [
-                                {
-                                    text: prompt
-                                },
+                                { text: prompt },
                                 {
                                     inline_data: {
                                         mime_type: mimeType,
@@ -523,9 +691,7 @@ Return ONLY the JSON array, no other text. Example:
                         }],
                         generationConfig: {
                             responseModalities: ["IMAGE"],
-                            imageConfig: {
-                                aspectRatio: "1:1"
-                            }
+                            imageConfig: { aspectRatio: "1:1" }
                         }
                     })
                 });
@@ -542,17 +708,21 @@ Return ONLY the JSON array, no other text. Example:
                 if (imagePart && imagePart.inlineData) {
                     const imageData = imagePart.inlineData.data;
                     const outputMimeType = imagePart.inlineData.mimeType || 'image/png';
-                    imageContainer.innerHTML = `<img src="data:${outputMimeType};base64,${imageData}" class="w-full h-full object-contain" alt="${item.name}">`;
-                    genBtn.textContent = '重新生成';
+                    imageContainer.innerHTML = `
+                        <img src="data:${outputMimeType};base64,${imageData}" class="w-full h-full object-contain" alt="${item.name}">
+                        <div class="absolute top-2 right-2 w-6 h-6 rounded-full border-2 border-white bg-white/80 flex items-center justify-center check-mark">
+                            <svg class="w-4 h-4 text-purple-500 ${selectedItems.has(index) ? '' : 'hidden'}" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    `;
                 } else {
                     throw new Error('未能生成图片');
                 }
             } catch (error) {
                 console.error('Cartoon generation error:', error);
-                showError(`生成失败: ${error.message}`);
-                genBtn.textContent = '重试';
-            } finally {
-                genBtn.disabled = false;
+                showError(`${item.name}: ${error.message}`);
+                imageContainer.innerHTML = originalContent;
             }
         }
 
