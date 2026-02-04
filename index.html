@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>物品管理器 - AI 智能识别</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .card-enter {
+            animation: cardEnter 0.3s ease-out;
+        }
+        @keyframes cardEnter {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .generating-placeholder {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">物品管理器</h1>
+            <p class="text-gray-600">上传书桌或卧室照片，AI 自动识别物品并生成卡通图片</p>
+        </header>
+
+        <!-- API Key Configuration -->
+        <section id="apiKeySection" class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4">配置 Gemini API Key</h2>
+            <div class="flex gap-3">
+                <input
+                    type="password"
+                    id="apiKeyInput"
+                    placeholder="输入你的 Gemini API Key"
+                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                <button
+                    id="saveApiKeyBtn"
+                    class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                    保存
+                </button>
+            </div>
+            <p id="apiKeyStatus" class="mt-2 text-sm text-gray-500"></p>
+            <p class="mt-2 text-xs text-gray-400">
+                获取 API Key: <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-500 hover:underline">Google AI Studio</a>
+            </p>
+        </section>
+
+        <!-- Image Upload -->
+        <section id="uploadSection" class="bg-white rounded-lg shadow-md p-6 mb-6 hidden">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4">上传照片</h2>
+            <div
+                id="uploadArea"
+                class="upload-area rounded-lg p-8 text-center cursor-pointer"
+            >
+                <div id="uploadPlaceholder">
+                    <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <p class="text-gray-600 mb-2">点击或拖拽上传照片</p>
+                    <p class="text-sm text-gray-400">支持 JPG、PNG 格式</p>
+                </div>
+                <img id="previewImage" class="max-h-64 mx-auto rounded-lg hidden" alt="预览">
+            </div>
+            <input type="file" id="fileInput" accept="image/jpeg,image/png" class="hidden">
+            <div class="mt-4 flex gap-3">
+                <button
+                    id="analyzeBtn"
+                    class="flex-1 px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed hidden"
+                >
+                    开始识别物品
+                </button>
+                <button
+                    id="resetBtn"
+                    class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors hidden"
+                >
+                    重新上传
+                </button>
+            </div>
+        </section>
+
+        <!-- Progress -->
+        <section id="progressSection" class="bg-white rounded-lg shadow-md p-6 mb-6 hidden">
+            <div class="flex items-center gap-3">
+                <div class="spinner"></div>
+                <span id="progressText" class="text-gray-600">正在分析图片...</span>
+            </div>
+        </section>
+
+        <!-- Results -->
+        <section id="resultsSection" class="hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-700">识别结果</h2>
+                <button
+                    id="generateAllBtn"
+                    class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                    生成所有卡通图片
+                </button>
+            </div>
+            <div id="itemsGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <!-- Items will be inserted here -->
+            </div>
+        </section>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="fixed bottom-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg hidden">
+            <span id="errorText"></span>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let apiKey = localStorage.getItem('gemini_api_key') || '';
+        let uploadedImage = null;
+        let identifiedItems = [];
+
+        // DOM Elements
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+        const apiKeyStatus = document.getElementById('apiKeyStatus');
+        const apiKeySection = document.getElementById('apiKeySection');
+        const uploadSection = document.getElementById('uploadSection');
+        const uploadArea = document.getElementById('uploadArea');
+        const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+        const fileInput = document.getElementById('fileInput');
+        const previewImage = document.getElementById('previewImage');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const progressSection = document.getElementById('progressSection');
+        const progressText = document.getElementById('progressText');
+        const resultsSection = document.getElementById('resultsSection');
+        const itemsGrid = document.getElementById('itemsGrid');
+        const generateAllBtn = document.getElementById('generateAllBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+
+        // Initialize
+        function init() {
+            if (apiKey) {
+                apiKeyInput.value = apiKey;
+                apiKeyStatus.textContent = 'API Key 已保存';
+                apiKeyStatus.className = 'mt-2 text-sm text-green-600';
+                uploadSection.classList.remove('hidden');
+            }
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
+            // API Key
+            saveApiKeyBtn.addEventListener('click', saveApiKey);
+            apiKeyInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') saveApiKey();
+            });
+
+            // Upload
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            uploadArea.addEventListener('drop', handleDrop);
+            fileInput.addEventListener('change', handleFileSelect);
+
+            // Actions
+            analyzeBtn.addEventListener('click', analyzeImage);
+            resetBtn.addEventListener('click', resetUpload);
+            generateAllBtn.addEventListener('click', generateAllCartoons);
+        }
+
+        function saveApiKey() {
+            const key = apiKeyInput.value.trim();
+            if (!key) {
+                showError('请输入 API Key');
+                return;
+            }
+            apiKey = key;
+            localStorage.setItem('gemini_api_key', key);
+            apiKeyStatus.textContent = 'API Key 已保存';
+            apiKeyStatus.className = 'mt-2 text-sm text-green-600';
+            uploadSection.classList.remove('hidden');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        }
+
+        function handleFile(file) {
+            if (!file.type.match(/^image\/(jpeg|png)$/)) {
+                showError('请上传 JPG 或 PNG 格式的图片');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                uploadedImage = e.target.result;
+                previewImage.src = uploadedImage;
+                previewImage.classList.remove('hidden');
+                uploadPlaceholder.classList.add('hidden');
+                analyzeBtn.classList.remove('hidden');
+                resetBtn.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetUpload() {
+            uploadedImage = null;
+            previewImage.src = '';
+            previewImage.classList.add('hidden');
+            uploadPlaceholder.classList.remove('hidden');
+            analyzeBtn.classList.add('hidden');
+            resetBtn.classList.add('hidden');
+            fileInput.value = '';
+            resultsSection.classList.add('hidden');
+            itemsGrid.innerHTML = '';
+            identifiedItems = [];
+        }
+
+        async function analyzeImage() {
+            if (!uploadedImage || !apiKey) return;
+
+            analyzeBtn.disabled = true;
+            progressSection.classList.remove('hidden');
+            progressText.textContent = '正在识别物品...';
+
+            try {
+                const base64Data = uploadedImage.split(',')[1];
+                const mimeType = uploadedImage.split(';')[0].split(':')[1];
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                {
+                                    text: `请分析这张照片，识别其中的所有物品。
+以 JSON 数组格式返回，每个物品包含：
+- name: 物品名称（中文）
+- nameEn: 物品名称（英文，用于生成图片）
+- description: 简短描述（中文）
+
+只返回 JSON 数组，不要其他文字。示例格式：
+[{"name": "笔记本电脑", "nameEn": "laptop", "description": "银色的苹果笔记本"}]`
+                                },
+                                {
+                                    inline_data: {
+                                        mime_type: mimeType,
+                                        data: base64Data
+                                    }
+                                }
+                            ]
+                        }],
+                        generationConfig: {
+                            temperature: 0.1,
+                            maxOutputTokens: 2048
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error?.message || '识别失败');
+                }
+
+                const data = await response.json();
+                const text = data.candidates[0].content.parts[0].text;
+
+                // Parse JSON from response
+                const jsonMatch = text.match(/\[[\s\S]*\]/);
+                if (!jsonMatch) {
+                    throw new Error('无法解析识别结果');
+                }
+
+                identifiedItems = JSON.parse(jsonMatch[0]);
+                displayItems();
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                analyzeBtn.disabled = false;
+                progressSection.classList.add('hidden');
+            }
+        }
+
+        function displayItems() {
+            resultsSection.classList.remove('hidden');
+            itemsGrid.innerHTML = '';
+
+            identifiedItems.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-lg shadow-md overflow-hidden card-enter';
+                card.style.animationDelay = `${index * 0.1}s`;
+                card.innerHTML = `
+                    <div class="aspect-square bg-gray-100 flex items-center justify-center" id="image-${index}">
+                        <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="p-3">
+                        <h3 class="font-medium text-gray-800 truncate">${item.name}</h3>
+                        <p class="text-sm text-gray-500 truncate">${item.description}</p>
+                        <button
+                            onclick="generateCartoon(${index})"
+                            class="mt-2 w-full px-3 py-1.5 text-sm bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors"
+                            id="gen-btn-${index}"
+                        >
+                            生成卡通图
+                        </button>
+                    </div>
+                `;
+                itemsGrid.appendChild(card);
+            });
+        }
+
+        async function generateCartoon(index) {
+            const item = identifiedItems[index];
+            const imageContainer = document.getElementById(`image-${index}`);
+            const genBtn = document.getElementById(`gen-btn-${index}`);
+
+            genBtn.disabled = true;
+            genBtn.textContent = '生成中...';
+            imageContainer.innerHTML = '<div class="w-full h-full generating-placeholder"></div>';
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        instances: [{
+                            prompt: `A cute cartoon-style illustration of a ${item.nameEn}, simple design, clean white background, vibrant colors, suitable for a sticker or icon, kawaii style`
+                        }],
+                        parameters: {
+                            sampleCount: 1,
+                            aspectRatio: "1:1",
+                            personGeneration: "dont_allow"
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error?.message || '生成失败');
+                }
+
+                const data = await response.json();
+
+                if (data.predictions && data.predictions[0]?.bytesBase64Encoded) {
+                    const imageData = data.predictions[0].bytesBase64Encoded;
+                    imageContainer.innerHTML = `<img src="data:image/png;base64,${imageData}" class="w-full h-full object-cover" alt="${item.name}">`;
+                    genBtn.textContent = '已生成';
+                    genBtn.classList.remove('bg-purple-100', 'text-purple-700', 'hover:bg-purple-200');
+                    genBtn.classList.add('bg-green-100', 'text-green-700');
+                    item.cartoonImage = imageData;
+                } else {
+                    throw new Error('未能生成图片');
+                }
+
+            } catch (error) {
+                showError(`生成 "${item.name}" 失败: ${error.message}`);
+                imageContainer.innerHTML = `
+                    <div class="w-full h-full flex items-center justify-center text-red-400">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                `;
+                genBtn.textContent = '重试';
+                genBtn.disabled = false;
+            }
+        }
+
+        async function generateAllCartoons() {
+            generateAllBtn.disabled = true;
+            generateAllBtn.textContent = '生成中...';
+
+            for (let i = 0; i < identifiedItems.length; i++) {
+                if (!identifiedItems[i].cartoonImage) {
+                    await generateCartoon(i);
+                    // Add delay to avoid rate limiting
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+
+            generateAllBtn.textContent = '全部完成';
+            generateAllBtn.classList.remove('bg-purple-500', 'hover:bg-purple-600');
+            generateAllBtn.classList.add('bg-green-500');
+        }
+
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+            setTimeout(() => {
+                errorMessage.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Initialize app
+        init();
+    </script>
+</body>
+</html>
