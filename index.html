@@ -159,13 +159,13 @@
         let identifiedItems = [];
         let selectedStyle = 'kawaii';
 
-        // Style prompts
+        // Style prompts - all preserve original color scheme
         const stylePrompts = {
-            kawaii: "Transform into a cute kawaii-style cartoon. White background. Keep only the main object, remove any other items. Round shapes, big eyes if applicable, pastel colors, adorable chibi style like Sanrio characters.",
-            pixel: "Transform into pixel art style. White background. Keep only the main object, remove any other items. 16-bit retro game aesthetic, blocky pixels, vibrant colors, clear outlines.",
-            watercolor: "Transform into watercolor painting style. White background. Keep only the main object, remove any other items. Soft brush strokes, gentle color blending, artistic hand-painted look.",
-            flat: "Transform into flat design illustration. White background. Keep only the main object, remove any other items. Minimal details, solid colors, no gradients, clean geometric shapes, modern minimalist style.",
-            anime: "Transform into Japanese anime style. White background. Keep only the main object, remove any other items. Clean lines, vibrant colors, dramatic shading, manga-inspired aesthetic."
+            kawaii: "Transform into a cute kawaii-style cartoon. White background. Keep only the main object, remove any other items. IMPORTANT: Preserve the original color scheme of the object. Round shapes, big eyes if applicable, adorable chibi style like Sanrio characters.",
+            pixel: "Transform into pixel art style. White background. Keep only the main object, remove any other items. IMPORTANT: Preserve the original color scheme of the object. 16-bit retro game aesthetic, blocky pixels, clear outlines.",
+            watercolor: "Transform into watercolor painting style. White background. Keep only the main object, remove any other items. IMPORTANT: Preserve the original color scheme of the object. Soft brush strokes, gentle color blending, artistic hand-painted look.",
+            flat: "Transform into flat design illustration. White background. Keep only the main object, remove any other items. IMPORTANT: Preserve the original color scheme of the object. Minimal details, solid colors, no gradients, clean geometric shapes, modern minimalist style.",
+            anime: "Transform into Japanese anime style. White background. Keep only the main object, remove any other items. IMPORTANT: Preserve the original color scheme of the object. Clean lines, dramatic shading, manga-inspired aesthetic."
         };
 
         // DOM Elements
