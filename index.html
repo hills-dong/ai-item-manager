@@ -628,6 +628,49 @@
 
         // DOM Elements
         const $ = id => document.getElementById(id);
+
+        // Robust JSON parser for LLM output
+        function parseJsonSafe(text) {
+            // Extract JSON array from text
+            let jsonStr = text;
+            const codeMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+            if (codeMatch) jsonStr = codeMatch[1].trim();
+
+            // Find array boundaries
+            const startIdx = jsonStr.indexOf('[');
+            if (startIdx === -1) throw new Error('无法解析识别结果');
+
+            let depth = 0, endIdx = -1;
+            for (let i = startIdx; i < jsonStr.length; i++) {
+                if (jsonStr[i] === '[') depth++;
+                if (jsonStr[i] === ']') depth--;
+                if (depth === 0) { endIdx = i; break; }
+            }
+            if (endIdx === -1) throw new Error('无法解析识别结果');
+
+            let str = jsonStr.substring(startIdx, endIdx + 1);
+
+            // Clean common issues
+            str = str
+                .replace(/,\s*([}\]])/g, '$1')     // trailing commas
+                .replace(/[\x00-\x1F\x7F]/g, ' ')  // control chars
+                .replace(/\n/g, ' ')               // newlines in strings
+                .replace(/'/g, '"')                // single quotes
+                .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3'); // unquoted keys
+
+            try {
+                return JSON.parse(str);
+            } catch (e) {
+                // Try to fix common escaping issues
+                str = str.replace(/\\(?!["\\/bfnrt])/g, '\\\\');
+                try {
+                    return JSON.parse(str);
+                } catch (e2) {
+                    console.error('JSON parse failed:', str);
+                    throw new Error('JSON 解析失败，请重试');
+                }
+            }
+        }
         const apiKeyInput = $('apiKeyInput');
         const saveApiKeyBtn = $('saveApiKeyBtn');
         const apiKeyStatus = $('apiKeyStatus');
@@ -790,22 +833,7 @@ Return ONLY the JSON array, no other text. Example:
                 if (!response.ok) throw new Error((await response.json()).error?.message || '识别失败');
 
                 const text = (await response.json()).candidates[0].content.parts[0].text;
-                let jsonStr = text;
-                const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-                if (codeBlockMatch) jsonStr = codeBlockMatch[1].trim();
-
-                let startIdx = jsonStr.indexOf('[');
-                if (startIdx === -1) throw new Error('无法解析识别结果');
-
-                let depth = 0, endIdx = -1;
-                for (let i = startIdx; i < jsonStr.length; i++) {
-                    if (jsonStr[i] === '[') depth++;
-                    if (jsonStr[i] === ']') depth--;
-                    if (depth === 0) { endIdx = i; break; }
-                }
-                if (endIdx === -1) throw new Error('无法解析识别结果');
-
-                identifiedItems = JSON.parse(jsonStr.substring(startIdx, endIdx + 1).replace(/,\s*]/g, ']').replace(/,\s*}/g, '}').replace(/[\x00-\x1F\x7F]/g, ' '));
+                identifiedItems = parseJsonSafe(text);
                 if (!identifiedItems.length) throw new Error('未识别到任何物品');
                 displayItems();
             } catch (error) {
