@@ -38,6 +38,10 @@
             --sidebar-width: 260px;
             --radius: 2px;
             --transition: 200ms ease;
+
+            /* Mobile */
+            --header-height: 56px;
+            --touch-target-min: 44px;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -485,9 +489,150 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        /* ===== Mobile Responsive ===== */
+        .mobile-header {
+            display: none;
+            align-items: center;
+            height: var(--header-height);
+            padding: 0 var(--spacing-md);
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .hamburger-btn {
+            width: var(--touch-target-min);
+            height: var(--touch-target-min);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            margin-right: var(--spacing-sm);
+        }
+
+        .hamburger-btn svg {
+            width: 24px;
+            height: 24px;
+            color: var(--text-primary);
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+        }
+
+        .sidebar-overlay.visible {
+            display: block;
+        }
+
+        /* Touch optimization */
+        .btn, .style-btn, .item-card {
+            touch-action: manipulation;
+        }
+
+        /* Mobile: < 768px */
+        @media (max-width: 767px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                z-index: 100;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .mobile-header {
+                display: flex;
+            }
+
+            .breadcrumb {
+                display: none;
+            }
+
+            .btn {
+                min-height: var(--touch-target-min);
+                font-size: 14px;
+            }
+
+            .style-btn {
+                min-height: 36px;
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+
+            .style-bar {
+                padding: var(--spacing-sm);
+            }
+
+            .style-bar-row {
+                flex-wrap: wrap;
+            }
+
+            #styleOptions {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: var(--spacing-xs);
+            }
+
+            .items-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--spacing-sm);
+            }
+        }
+
+        /* Small tablet: 480px - 767px */
+        @media (min-width: 480px) and (max-width: 767px) {
+            .items-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* Desktop: >= 768px */
+        @media (min-width: 768px) {
+            .mobile-header {
+                display: none !important;
+            }
+
+            .sidebar-overlay {
+                display: none !important;
+            }
+
+            .sidebar {
+                transform: translateX(0);
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <button class="hamburger-btn" id="menuToggle" aria-label="Toggle menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12h18M3 6h18M3 18h18"/>
+            </svg>
+        </button>
+        <img src="logo.png" alt="Logo" style="width:32px; height:32px; object-fit:contain;">
+        <span style="margin-left:8px; font-weight:500; font-size:15px;">物品管理器</span>
+    </header>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <!-- Left Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-header" style="display:flex; align-items:center; gap:var(--spacing-sm);">
@@ -751,6 +896,39 @@
             $('batchSizeSlider').oninput = e => {
                 $('batchSizeValue').textContent = e.target.value;
             };
+
+            // Mobile sidebar toggle
+            const menuToggle = $('menuToggle');
+            const sidebarOverlay = $('sidebarOverlay');
+            const sidebar = document.querySelector('.sidebar');
+
+            menuToggle?.addEventListener('click', openSidebar);
+            sidebarOverlay?.addEventListener('click', closeSidebar);
+
+            // Mobile: default open sidebar for upload
+            if (isMobile()) {
+                openSidebar();
+            }
+        }
+
+        function isMobile() {
+            return window.innerWidth < 768;
+        }
+
+        function openSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = $('sidebarOverlay');
+            sidebar?.classList.add('open');
+            overlay?.classList.add('visible');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = $('sidebarOverlay');
+            sidebar?.classList.remove('open');
+            overlay?.classList.remove('visible');
+            document.body.style.overflow = '';
         }
 
         function updateSelectionCount() {
@@ -886,6 +1064,9 @@ IMPORTANT: Return ONLY a valid JSON array, no markdown, no explanation. Example:
         }
 
         function displayItems() {
+            // Mobile: close sidebar to show results
+            if (isMobile()) closeSidebar();
+
             resultsSection.classList.remove('hidden');
             styleBar.classList.remove('hidden');
             emptyState.classList.add('hidden');
