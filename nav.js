@@ -130,4 +130,9 @@ function renderNav(activePage) {
     input.addEventListener('keyup', (e) => {
         if (e.key === 'Enter') saveBtn.click();
     });
+
+    // Auto-open API key panel on first visit (no key configured)
+    if (!isConfigured) {
+        setTimeout(() => panel.classList.add('open'), 300);
+    }
 }

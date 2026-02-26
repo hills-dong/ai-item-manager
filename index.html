@@ -899,8 +899,8 @@
             menuToggle?.addEventListener('click', openSidebar);
             sidebarOverlay?.addEventListener('click', closeSidebar);
 
-            // Mobile: default open sidebar for upload
-            if (isMobile()) {
+            // Mobile: open sidebar only if API key is already configured
+            if (isMobile() && apiKey) {
                 openSidebar();
             }
         }

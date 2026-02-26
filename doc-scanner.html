@@ -753,7 +753,8 @@
             document.body.style.overflow = '';
         });
 
-        if (window.innerWidth < 768) {
+        // Mobile: open sidebar only if API key is already configured
+        if (window.innerWidth < 768 && apiKey) {
             document.querySelector('.sidebar')?.classList.add('open');
             sidebarOverlay?.classList.add('visible');
             document.body.style.overflow = 'hidden';
