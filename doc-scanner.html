@@ -634,7 +634,7 @@
         </div>
 
         <div class="sidebar-footer">
-            <p>© 2026 证件识别 · v1.1.1</p>
+            <p>© 2026 证件识别 · v1.1.2</p>
         </div>
     </aside>
 
@@ -673,10 +673,10 @@
     <span id="errorText"></span>
 </div>
 
-<!-- jsPDF CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="nav.js?v=4"></script>
 
-<script src="nav.js?v=3"></script>
+<!-- jsPDF CDN (async: only needed for PDF download) -->
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
     // ===== State =====
     let apiKey = getApiKey();
@@ -1037,6 +1037,7 @@ Return ONLY valid JSON, no markdown, no explanation. Extract every visible text 
 
     // ===== PDF generation =====
     function downloadDocPdf() {
+        if (!window.jspdf) return showError('PDF 库加载中，请稍后重试');
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pageW = 210;
