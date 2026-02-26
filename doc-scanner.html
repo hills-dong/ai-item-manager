@@ -852,7 +852,7 @@
             body: JSON.stringify({
                 contents: [{ parts: [
                     { text: `This image contains a document/ID card. Detect the document and return a JSON object with:
-- "docType": document type in Chinese (e.g., "身份证", "驾驶证", "行驶证", "护照", "港澳通行证", "台湾通行证", "居住证", "社保卡", or "其他证件")
+- "docType": specific document type name (e.g., "身份证", "驾驶证", "行驶证", "护照", "港澳通行证", "台湾通行证", "居住证", "社保卡", "Singapore Employment Pass", "Singapore FIN Card", "Singapore Work Permit", "Visa", "Driver's License", etc.). Use the most specific name possible, in the document's own language if identifiable.
 - "bbox": bounding box of the document as [x, y, width, height] in percentage (0-100) of image dimensions
 
 Return ONLY valid JSON, no markdown. Example:
@@ -1043,17 +1043,17 @@ Return ONLY valid JSON, no markdown, no explanation. Extract every visible text 
         let y = margin;
 
         // Title
-        drawChineseText(pdf, docType + ' - 扫描件', margin, y, 18, '#333333');
-        y += 12;
+        drawChineseText(pdf, docType + ' - 扫描件', margin, y, 16, '#333333');
+        y += 8;
 
         // Date
-        drawChineseText(pdf, '扫描日期: ' + new Date().toLocaleDateString('zh-CN'), margin, y, 10, '#999999');
-        y += 10;
+        drawChineseText(pdf, '扫描日期: ' + new Date().toLocaleDateString('zh-CN'), margin, y, 9, '#999999');
+        y += 6;
 
         // Separator
         pdf.setDrawColor(200);
         pdf.line(margin, y, pageW - margin, y);
-        y += 8;
+        y += 5;
 
         // Images side by side
         const imgW = croppedBack ? (contentW - 5) / 2 : contentW * 0.6;
@@ -1065,33 +1065,33 @@ Return ONLY valid JSON, no markdown, no explanation. Extract every visible text 
         if (croppedBack) {
             pdf.addImage(croppedBack, 'JPEG', margin + imgW + 5, y, imgW, imgH);
         }
-        y += imgH + 5;
+        y += imgH + 2;
 
         // Image labels
-        drawChineseText(pdf, '正面', margin + imgW / 2 - 5, y, 9, '#999999');
+        drawChineseText(pdf, '正面', margin + imgW / 2 - 3, y, 8, '#999999');
         if (croppedBack) {
-            drawChineseText(pdf, '背面', margin + imgW + 5 + imgW / 2 - 5, y, 9, '#999999');
+            drawChineseText(pdf, '背面', margin + imgW + 5 + imgW / 2 - 3, y, 8, '#999999');
         }
-        y += 10;
+        y += 6;
 
         // Separator
         pdf.setDrawColor(200);
         pdf.line(margin, y, pageW - margin, y);
-        y += 8;
+        y += 5;
 
         // Fields
         if (docFields) {
-            drawChineseText(pdf, '提取字段', margin, y, 12, '#333333');
-            y += 8;
+            drawChineseText(pdf, '提取字段', margin, y, 11, '#333333');
+            y += 6;
 
             for (const [key, value] of Object.entries(docFields)) {
-                if (y > 270) {
+                if (y > 275) {
                     pdf.addPage();
                     y = margin;
                 }
-                drawChineseText(pdf, key + ':', margin, y, 10, '#666666');
-                drawChineseText(pdf, String(value), margin + 40, y, 10, '#111111');
-                y += 7;
+                drawChineseText(pdf, key + ':', margin, y, 9, '#666666');
+                drawChineseText(pdf, String(value), margin + 30, y, 9, '#111111');
+                y += 5;
             }
         }
 
@@ -1099,27 +1099,30 @@ Return ONLY valid JSON, no markdown, no explanation. Extract every visible text 
     }
 
     // Draw Chinese text via Canvas bitmap (no font embedding needed)
-    function drawChineseText(pdf, text, x, y, fontSize, color) {
+    // fontSize is in pt; 1pt ≈ 0.353mm
+    function drawChineseText(pdf, text, x, y, fontSizePt, color) {
         const canvas = document.createElement('canvas');
-        const scale = 3;
-        const fSize = fontSize * scale;
+        const pxPerPt = 4; // render at 4x for crisp output
+        const fSizePx = fontSizePt * pxPerPt;
         const ctx = canvas.getContext('2d');
-        ctx.font = `${fSize}px "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif`;
+        ctx.font = `${fSizePx}px "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif`;
         const metrics = ctx.measureText(text);
         const textW = metrics.width;
-        const textH = fSize * 1.3;
+        const textH = fSizePx * 1.25;
 
         canvas.width = Math.ceil(textW) + 4;
         canvas.height = Math.ceil(textH) + 4;
 
-        ctx.font = `${fSize}px "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif`;
+        ctx.font = `${fSizePx}px "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif`;
         ctx.fillStyle = color || '#000000';
         ctx.textBaseline = 'top';
         ctx.fillText(text, 0, 2);
 
         const imgData = canvas.toDataURL('image/png');
-        const imgW = (canvas.width / scale) * (fontSize / fSize * scale);
-        const imgH = (canvas.height / scale) * (fontSize / fSize * scale);
+        // Convert canvas pixels to mm: 1pt = 0.353mm
+        const ptToMm = 0.353;
+        const imgW = (canvas.width / pxPerPt) * ptToMm;
+        const imgH = (canvas.height / pxPerPt) * ptToMm;
         pdf.addImage(imgData, 'PNG', x, y, imgW, imgH);
     }
 
