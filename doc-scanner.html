@@ -634,7 +634,7 @@
         </div>
 
         <div class="sidebar-footer">
-            <p>© 2026 证件识别 · v1.1.4</p>
+            <p>© 2026 证件识别 · v1.1.5</p>
         </div>
     </aside>
 
@@ -882,26 +882,15 @@ Return ONLY valid JSON, no markdown. Example:
         return new Promise((resolve, reject) => {
             const img = new Image();
             img.onload = () => {
-                // Gemini may return bbox in 0-1000 scale instead of 0-100
+                // Gemini returns bbox in 0-1000 scale; normalize to 0-1
                 const maxVal = Math.max(...bbox);
                 const scale = maxVal > 100 ? 1000 : 100;
+                const pad = 0.02; // 2% padding to avoid cutting edges
 
-                // Detect if bbox is [x1,y1,x2,y2] or [x,y,w,h]
-                // If bbox[2] > bbox[0] and bbox[3] > bbox[1] and they look like coordinates, treat as [x1,y1,x2,y2]
-                let bx, by, bw, bh;
-                if (bbox[2] > bbox[0] && bbox[3] > bbox[1] && (bbox[0] + bbox[2]) > scale * 0.5) {
-                    // [x1, y1, x2, y2] format
-                    bx = bbox[0] / scale;
-                    by = bbox[1] / scale;
-                    bw = (bbox[2] - bbox[0]) / scale;
-                    bh = (bbox[3] - bbox[1]) / scale;
-                } else {
-                    // [x, y, width, height] format
-                    bx = bbox[0] / scale;
-                    by = bbox[1] / scale;
-                    bw = bbox[2] / scale;
-                    bh = bbox[3] / scale;
-                }
+                const bx = Math.max(0, bbox[0] / scale - pad);
+                const by = Math.max(0, bbox[1] / scale - pad);
+                const bw = Math.min(1 - bx, bbox[2] / scale + pad * 2);
+                const bh = Math.min(1 - by, bbox[3] / scale + pad * 2);
 
                 const x = bx * img.width;
                 const y = by * img.height;
