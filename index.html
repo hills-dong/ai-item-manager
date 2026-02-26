@@ -6,6 +6,7 @@
     <title>物品管理器 - AI 智能识别</title>
     <link rel="icon" type="image/png" href="logo.png">
     <link rel="apple-touch-icon" href="logo.png">
+    <link rel="stylesheet" href="nav.css">
     <style>
         /* ===== Design System (matching dbs2tsv) ===== */
         :root {
@@ -73,7 +74,7 @@
             width: var(--sidebar-width);
             background: var(--sidebar-bg);
             position: fixed;
-            left: 0;
+            left: var(--nav-width, 60px);
             top: 0;
             z-index: 50;
             bottom: 0;
@@ -256,7 +257,7 @@
 
         /* ===== Main Content ===== */
         .main-content {
-            margin-left: var(--sidebar-width);
+            margin-left: calc(var(--nav-width, 60px) + var(--sidebar-width));
             min-height: 100vh;
         }
 
@@ -542,6 +543,7 @@
         /* Mobile: < 768px */
         @media (max-width: 767px) {
             .sidebar {
+                left: 0;
                 transform: translateX(-100%);
                 transition: transform 0.3s ease;
                 z-index: 100;
@@ -619,6 +621,8 @@
     </style>
 </head>
 <body>
+<div class="app-shell">
+<div class="app-main">
     <!-- Mobile Header -->
     <header class="mobile-header">
         <button class="hamburger-btn" id="menuToggle" aria-label="Toggle menu">
@@ -641,20 +645,6 @@
                 <h1>物品管理器</h1>
                 <p class="subtitle">AI 智能识别 · 卡通风格化</p>
             </div>
-        </div>
-
-        <!-- API Key -->
-        <div class="sidebar-section">
-            <h2 class="section-title">🔑 Gemini API Key</h2>
-            <input type="password" id="apiKeyInput" placeholder="输入 Gemini API Key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="width:100%; padding:8px; font-size:12px; border:1px solid var(--border-color); border-radius:var(--radius); margin-bottom:var(--spacing-sm); background:#fff;">
-            <button id="saveApiKeyBtn" class="btn btn-primary">保存</button>
-            <div class="stat-compact" style="margin-top:var(--spacing-sm);">
-                <span class="stat-label">状态</span>
-                <span id="apiKeyStatus" class="stat-value">未配置</span>
-            </div>
-            <p style="font-size:10px; color:var(--text-tertiary); margin-top:var(--spacing-xs);">
-                <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent-primary);">获取 API Key</a>
-            </p>
         </div>
 
         <!-- Upload -->
@@ -759,14 +749,17 @@
         </div>
     </main>
 
+    </div><!-- /app-main -->
+    </div><!-- /app-shell -->
+
     <!-- Error Toast -->
     <div id="errorMessage" class="error-toast hidden">
         <span id="errorText"></span>
     </div>
-
+    <script src="nav.js"></script>
     <script>
         // State
-        let apiKey = localStorage.getItem('gemini_api_key') || '';
+        let apiKey = getApiKey();
         let uploadedImage = null;
         let identifiedItems = [];
         let selectedItems = new Set();
@@ -788,6 +781,9 @@
 
         // DOM Elements
         const $ = id => document.getElementById(id);
+
+        // Render global navigation
+        renderNav('items');
 
         // Robust JSON parser for LLM output
         function parseJsonSafe(text) {
@@ -831,9 +827,6 @@
                 }
             }
         }
-        const apiKeyInput = $('apiKeyInput');
-        const saveApiKeyBtn = $('saveApiKeyBtn');
-        const apiKeyStatus = $('apiKeyStatus');
         const uploadSection = $('uploadSection');
         const uploadArea = $('uploadArea');
         const uploadPlaceholder = $('uploadPlaceholder');
@@ -855,48 +848,22 @@
         const customPrompt = $('customPrompt');
         const emptyState = $('emptyState');
 
-        // Key obfuscation (simple but not obvious)
-        function encodeKey(key) {
-            // Base64 -> reverse -> add prefix
-            return 'x' + btoa(key).split('').reverse().join('');
-        }
-
-        function decodeKey(encoded) {
-            if (!encoded || encoded[0] !== 'x') return null;
-            try {
-                // Remove prefix -> reverse -> Base64 decode
-                return atob(encoded.slice(1).split('').reverse().join(''));
-            } catch { return null; }
-        }
-
         // Initialize
         function init() {
-            // Check URL for shared key
-            const urlParams = new URLSearchParams(window.location.search);
-            const encodedKey = urlParams.get('k');
-            if (encodedKey) {
-                const decodedKey = decodeKey(encodedKey);
-                if (decodedKey) {
-                    apiKey = decodedKey;
-                    localStorage.setItem('gemini_api_key', decodedKey);
-                    // Clean URL
-                    window.history.replaceState({}, '', window.location.pathname);
-                }
-            }
-
+            apiKey = getApiKey();
             if (apiKey) {
-                apiKeyInput.value = apiKey;
-                apiKeyStatus.textContent = '已配置';
-                apiKeyStatus.style.color = 'var(--success)';
                 uploadSection.classList.remove('hidden');
             }
             setupEventListeners();
+
+            // Listen for API key changes from nav
+            window.addEventListener('apikey-changed', (e) => {
+                apiKey = e.detail.key;
+                uploadSection.classList.remove('hidden');
+            });
         }
 
         function setupEventListeners() {
-            saveApiKeyBtn.onclick = saveApiKey;
-            apiKeyInput.addEventListener('keyup', e => { if (e.key === 'Enter') saveApiKey(); });
-
             uploadArea.onclick = () => fileInput.click();
             uploadArea.ondragover = e => { e.preventDefault(); uploadArea.classList.add('dragover'); };
             uploadArea.ondragleave = e => { e.preventDefault(); uploadArea.classList.remove('dragover'); };
@@ -979,16 +946,6 @@
             selectedItems.clear();
             items.forEach(i => updateCardSelection(i));
             updateSelectionCount();
-        }
-
-        function saveApiKey() {
-            const key = apiKeyInput.value.trim();
-            if (!key) return showError('请输入 API Key');
-            apiKey = key;
-            localStorage.setItem('gemini_api_key', key);
-            apiKeyStatus.textContent = '已配置';
-            apiKeyStatus.style.color = 'var(--success)';
-            uploadSection.classList.remove('hidden');
         }
 
         function handleFile(file) {
