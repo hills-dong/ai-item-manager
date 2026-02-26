@@ -43,9 +43,10 @@ function renderNav(activePage) {
     const apiKey = getApiKey();
     const isConfigured = !!apiKey;
 
-    const nav = document.createElement('nav');
-    nav.className = 'global-nav';
-    nav.id = 'globalNav';
+    // Populate the existing nav skeleton (already in HTML to avoid flash)
+    const nav = document.getElementById('globalNav');
+    if (!nav) return;
+
     nav.innerHTML = `
         <img src="logo.png" alt="Logo" class="nav-logo">
         <div class="nav-items">
@@ -86,14 +87,6 @@ function renderNav(activePage) {
             </div>
         </div>
     `;
-
-    // Insert nav as first child of app-shell
-    const appShell = document.querySelector('.app-shell');
-    if (appShell) {
-        appShell.insertBefore(nav, appShell.firstChild);
-    } else {
-        document.body.insertBefore(nav, document.body.firstChild);
-    }
 
     // Event listeners
     const toggle = document.getElementById('navApiKeyToggle');
