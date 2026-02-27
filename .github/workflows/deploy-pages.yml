@@ -6,13 +6,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
 concurrency:
-  group: "pages-${{ github.ref_name }}"
-  cancel-in-progress: true
+  group: "pages-deploy"
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -23,51 +23,55 @@ jobs:
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v4
-
-      - name: Download existing Pages artifact
-        id: download
-        uses: actions/github-script@v7
         with:
-          script: |
-            const fs = require('fs');
-            // Try to find the latest successful deployment artifact
-            try {
-              const deployments = await github.rest.repos.listDeployments({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                environment: 'github-pages',
-                per_page: 1
-              });
-              core.info(`Found ${deployments.data.length} deployments`);
-            } catch (e) {
-              core.info('No existing deployments found');
-            }
-            return 'done';
+          path: source
 
-      - name: Prepare deployment directory
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: deploy
+        continue-on-error: true
+
+      - name: Initialize deploy directory if gh-pages doesn't exist
+        run: |
+          if [ ! -d "deploy/.git" ]; then
+            mkdir -p deploy
+          fi
+
+      - name: Update branch content
         run: |
           BRANCH_NAME="${GITHUB_REF_NAME}"
           SAFE_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g')
 
-          # Create deploy directory with branch subdirectory
+          # Remove old content for this branch
+          rm -rf "deploy/${SAFE_BRANCH}"
           mkdir -p "deploy/${SAFE_BRANCH}"
 
           # Copy site files into branch subdirectory
-          for f in $(ls -A | grep -v -E '^(\.git|deploy)$'); do
-            cp -r "$f" "deploy/${SAFE_BRANCH}/"
+          for f in $(ls -A source | grep -v -E '^\.git$'); do
+            cp -r "source/$f" "deploy/${SAFE_BRANCH}/"
           done
 
-          # If this is the main branch, also copy files to root so that
-          # the root URL serves main branch content directly
+          # If this is the main branch, also copy files to root
           if [ "$BRANCH_NAME" = "main" ]; then
-            for f in $(ls -A | grep -v -E '^(\.git|deploy)$'); do
-              cp -r "$f" "deploy/"
+            for f in $(ls -A source | grep -v -E '^\.git$'); do
+              cp -r "source/$f" "deploy/"
             done
             echo "Main branch files also copied to deploy root"
           fi
 
           echo "Deployed branch: ${BRANCH_NAME} -> ${SAFE_BRANCH}"
           ls -la "deploy/${SAFE_BRANCH}/"
+
+      - name: Commit to gh-pages branch
+        run: |
+          cd deploy
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && echo "No changes to commit" || git commit -m "Deploy ${GITHUB_REF_NAME}"
+          git push origin gh-pages || true
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
