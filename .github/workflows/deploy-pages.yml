@@ -1,0 +1,77 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ['*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages-${{ github.ref_name }}"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages-dir
+        continue-on-error: true
+
+      - name: Prepare deployment directory
+        run: |
+          BRANCH_NAME="${GITHUB_REF_NAME}"
+          SAFE_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g')
+
+          # If gh-pages checkout failed, start fresh
+          if [ ! -d "gh-pages-dir" ]; then
+            mkdir -p gh-pages-dir
+          fi
+
+          # Clean old content for this branch
+          rm -rf "gh-pages-dir/${SAFE_BRANCH}"
+          mkdir -p "gh-pages-dir/${SAFE_BRANCH}"
+
+          # Copy site files (exclude .git and gh-pages-dir)
+          for f in $(ls -A | grep -v -E '^(\.git|gh-pages-dir)$'); do
+            cp -r "$f" "gh-pages-dir/${SAFE_BRANCH}/"
+          done
+
+          # Generate index page listing all branches
+          cd gh-pages-dir
+          echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Branch Previews</title>' > index.html
+          echo '<style>body{font-family:system-ui;max-width:600px;margin:40px auto;padding:0 20px}' >> index.html
+          echo 'a{display:block;padding:8px 0;font-size:18px}</style></head>' >> index.html
+          echo '<body><h1>Branch Previews</h1>' >> index.html
+          for dir in */; do
+            dir_name="${dir%/}"
+            if [ "$dir_name" != "*" ]; then
+              echo "<a href=\"${dir_name}/\">${dir_name}</a>" >> index.html
+            fi
+          done
+          echo '</body></html>' >> index.html
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: gh-pages-dir
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
