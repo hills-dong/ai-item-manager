@@ -689,13 +689,6 @@
             border-top: 1px solid var(--border-color);
         }
 
-        .tryon-right {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-            margin-left: auto;
-        }
-
         .tryon-hint {
             font-size: 10px;
             color: var(--text-tertiary);
@@ -942,13 +935,12 @@
                 <button id="generateBtn" class="btn btn-primary" style="width:auto; padding:4px 12px;" disabled>生成标准图</button>
             </div>
             <div class="tool-bar-actions">
+                <div style="flex:1;"></div>
                 <span id="tryonHint" class="tryon-hint"></span>
-                <div class="tryon-right">
-                    <div id="tryonAvatar" class="tryon-avatar" title="点击上传全身照">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    </div>
-                    <button id="tryonBtn" class="btn btn-primary" style="width:auto; padding:4px 12px;">试穿</button>
+                <div id="tryonAvatar" class="tryon-avatar" title="点击上传全身照">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 </div>
+                <button id="tryonBtn" class="btn btn-primary" style="width:auto; padding:4px 12px;" disabled>试穿</button>
                 <input type="file" id="tryonFileInput" accept="image/jpeg,image/png" hidden>
             </div>
             <div id="tryonResultsPanel" class="tryon-results-panel hidden"></div>
@@ -998,6 +990,7 @@
         let selectedItems = new Set();
         let tryOnPhoto = null; // Full-body photo data URL
         let tryOnHistory = []; // Array of { dataUrl, label, timestamp }
+        let standardGenerated = false; // Whether standard images have been generated
 
         // DOM
         const $ = id => document.getElementById(id);
@@ -1212,7 +1205,15 @@
             const hasPhoto = !!tryOnPhoto;
             const hasSelection = selectedItems.size > 0;
 
-            // Check category constraint and show hint
+            // Before standard images are generated, disable try-on
+            if (!standardGenerated) {
+                tryonHint.textContent = '请先生成标准图';
+                tryonHint.style.color = 'var(--text-tertiary)';
+                tryonBtn.disabled = true;
+                return;
+            }
+
+            // Check category constraint
             if (hasSelection) {
                 const catCount = {};
                 selectedItems.forEach(idx => {
@@ -1222,13 +1223,13 @@
                 const duplicates = Object.entries(catCount).filter(([,c]) => c > 1);
                 if (duplicates.length > 0) {
                     const names = duplicates.map(([cat]) => cat).join('、');
-                    tryonHint.textContent = `${names}选了多件，每类最多选1件`;
+                    tryonHint.textContent = `${names}选了多件，每类最多1件`;
                     tryonHint.style.color = 'var(--error)';
                     tryonBtn.disabled = true;
                 } else {
                     tryonBtn.disabled = false;
                     if (!hasPhoto) {
-                        tryonHint.textContent = '选好衣物，点击试穿上传全身照';
+                        tryonHint.textContent = '点击试穿上传全身照';
                         tryonHint.style.color = 'var(--text-tertiary)';
                     } else {
                         tryonHint.textContent = '点击试穿生成效果图';
@@ -1236,9 +1237,9 @@
                     }
                 }
             } else {
-                tryonHint.textContent = hasPhoto ? '勾选衣物后点击试穿' : '勾选衣物后点击试穿上传全身照';
+                tryonHint.textContent = '勾选衣物后试穿';
                 tryonHint.style.color = 'var(--text-tertiary)';
-                tryonBtn.disabled = false;
+                tryonBtn.disabled = true;
             }
         }
 
@@ -1289,6 +1290,7 @@
             identifiedItems = [];
             selectedItems.clear();
             tryOnHistory = [];
+            standardGenerated = false;
             tryonResultsPanel.innerHTML = '';
             tryonResultsPanel.classList.add('hidden');
         }
@@ -1358,6 +1360,7 @@
             identifiedItems = [];
             selectedItems.clear();
             tryOnHistory = [];
+            standardGenerated = false;
             tryonResultsPanel.innerHTML = '';
             tryonResultsPanel.classList.add('hidden');
             $('spreadUploadPlaceholder').querySelector('.drop-hint').textContent = '拖拽或点击上传衣物照片（可多选）';
@@ -1803,7 +1806,9 @@ Example:
                 }));
             }
             generateBtn.textContent = '生成标准图';
-            generateBtn.disabled = selectedItems.size === 0;
+            standardGenerated = true;
+            // Auto-deselect all so user can re-select for try-on
+            deselectAll();
         }
 
         async function generateFrontView(index) {
