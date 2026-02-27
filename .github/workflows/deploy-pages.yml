@@ -6,56 +6,54 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
 concurrency:
-  group: "pages-${{ github.ref_name }}"
-  cancel-in-progress: true
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v4
 
-      - name: Checkout gh-pages branch
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: gh-pages-dir
-        continue-on-error: true
-
-      - name: Prepare deployment directory
+      - name: Prepare and deploy to gh-pages
         run: |
           BRANCH_NAME="${GITHUB_REF_NAME}"
           SAFE_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g')
+          REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
-          # If gh-pages checkout failed, start fresh
-          if [ ! -d "gh-pages-dir" ]; then
+          # Clone or init gh-pages branch
+          git clone --branch gh-pages --single-branch "$REPO_URL" gh-pages-dir 2>/dev/null || {
             mkdir -p gh-pages-dir
-          fi
+            cd gh-pages-dir
+            git init -b gh-pages
+            git remote add origin "$REPO_URL"
+            cd ..
+          }
 
           # Clean old content for this branch
           rm -rf "gh-pages-dir/${SAFE_BRANCH}"
           mkdir -p "gh-pages-dir/${SAFE_BRANCH}"
 
-          # Copy site files (exclude .git and gh-pages-dir)
+          # Copy site files (exclude .git and gh-pages-dir and .github)
           for f in $(ls -A | grep -v -E '^(\.git|gh-pages-dir)$'); do
             cp -r "$f" "gh-pages-dir/${SAFE_BRANCH}/"
           done
 
-          # Generate index page listing all branches
+          # Generate index page listing all deployed branches
           cd gh-pages-dir
-          echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Branch Previews</title>' > index.html
-          echo '<style>body{font-family:system-ui;max-width:600px;margin:40px auto;padding:0 20px}' >> index.html
-          echo 'a{display:block;padding:8px 0;font-size:18px}</style></head>' >> index.html
-          echo '<body><h1>Branch Previews</h1>' >> index.html
+          cat > index.html << 'INDEXEOF'
+          <!DOCTYPE html>
+          <html>
+          <head><meta charset="utf-8"><title>Branch Previews</title>
+          <style>body{font-family:system-ui;max-width:600px;margin:40px auto;padding:0 20px}a{display:block;padding:8px 0;font-size:18px}</style>
+          </head><body><h1>Branch Previews</h1>
+          INDEXEOF
           for dir in */; do
             dir_name="${dir%/}"
             if [ "$dir_name" != "*" ]; then
@@ -64,14 +62,12 @@ jobs:
           done
           echo '</body></html>' >> index.html
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: gh-pages-dir
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          # Commit and push
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && echo "No changes to deploy" && exit 0
+          git commit -m "Deploy branch ${BRANCH_NAME} to GitHub Pages"
+          git push origin gh-pages --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
