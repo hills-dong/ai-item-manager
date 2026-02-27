@@ -694,14 +694,33 @@
             color: var(--text-tertiary);
         }
 
-        /* Try-on results panel */
-        .tryon-results-panel {
-            margin-top: var(--spacing-sm);
-            padding-top: var(--spacing-sm);
-            border-top: 1px solid var(--border-color);
+        /* Results layout: standard images left, try-on right */
+        .results-layout {
+            display: flex;
+            gap: var(--spacing-lg);
         }
-        .tryon-results-panel .items-grid {
-            margin-top: var(--spacing-xs);
+        .results-main {
+            flex: 1;
+            min-width: 0;
+        }
+        .tryon-sidebar {
+            width: 160px;
+            flex-shrink: 0;
+            border-left: 1px solid var(--border-color);
+            padding-left: var(--spacing-md);
+        }
+        .tryon-sidebar-header {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-sm);
+            padding-bottom: var(--spacing-xs);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tryon-sidebar .tryon-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
         }
 
         .hidden { display: none !important; }
@@ -791,6 +810,25 @@
             .items-grid {
                 grid-template-columns: repeat(2, 1fr);
                 gap: var(--spacing-sm);
+            }
+
+            .results-layout {
+                flex-direction: column;
+            }
+            .tryon-sidebar {
+                width: 100%;
+                border-left: none;
+                padding-left: 0;
+                border-top: 1px solid var(--border-color);
+                padding-top: var(--spacing-md);
+            }
+            .tryon-list {
+                flex-direction: row !important;
+                overflow-x: auto;
+            }
+            .tryon-list .item-card {
+                min-width: 120px;
+                max-width: 120px;
             }
         }
 
@@ -943,12 +981,14 @@
                 <button id="tryonBtn" class="btn btn-primary" style="width:auto; padding:4px 12px;" disabled>试穿</button>
                 <input type="file" id="tryonFileInput" accept="image/jpeg,image/png" hidden>
             </div>
-            <div id="tryonResultsPanel" class="tryon-results-panel hidden"></div>
         </div>
 
         <!-- Results -->
         <section id="resultsSection" class="results-section hidden">
-            <div id="categorizedResults"></div>
+            <div class="results-layout">
+                <div id="categorizedResults" class="results-main"></div>
+                <div id="tryonResultsPanel" class="tryon-sidebar hidden"></div>
+            </div>
         </section>
 
         <!-- Welcome -->
@@ -2015,10 +2055,10 @@ RULES:
             }
 
             tryonResultsPanel.classList.remove('hidden');
-            tryonResultsPanel.innerHTML = '';
+            tryonResultsPanel.innerHTML = `<div class="tryon-sidebar-header">试穿效果</div>`;
 
-            const grid = document.createElement('div');
-            grid.className = 'items-grid';
+            const list = document.createElement('div');
+            list.className = 'tryon-list';
 
             tryOnHistory.forEach((record, i) => {
                 const card = document.createElement('div');
@@ -2036,10 +2076,10 @@ RULES:
                         <span class="item-detail">${new Date(record.timestamp).toLocaleTimeString()}</span>
                     </div>
                 `;
-                grid.appendChild(card);
+                list.appendChild(card);
             });
 
-            tryonResultsPanel.appendChild(grid);
+            tryonResultsPanel.appendChild(list);
         }
 
         function showTryOnCompare(historyIndex) {
