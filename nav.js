@@ -63,6 +63,12 @@ function renderNav(activePage) {
                 </svg>
                 <span>证件</span>
             </a>
+            <a href="wardrobe.html" class="nav-item ${activePage === 'wardrobe' ? 'active' : ''}" title="穿搭">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L8 6H3v4l4 2v8h10v-8l4-2V6h-5l-4-4z"/>
+                </svg>
+                <span>穿搭</span>
+            </a>
         </div>
         <div class="nav-spacer"></div>
         <div class="nav-apikey">
