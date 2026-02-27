@@ -57,22 +57,14 @@ jobs:
             cp -r "$f" "deploy/${SAFE_BRANCH}/"
           done
 
-          # Generate index page listing all branches
-          cd deploy
-          cat > index.html << 'INDEXEOF'
-          <!DOCTYPE html>
-          <html>
-          <head><meta charset="utf-8"><title>Branch Previews - ai-item-manager</title>
-          <style>body{font-family:system-ui;max-width:600px;margin:40px auto;padding:0 20px}a{display:block;padding:8px 0;font-size:18px}</style>
-          </head><body><h1>Branch Previews</h1>
-          INDEXEOF
-          for dir in */; do
-            dir_name="${dir%/}"
-            if [ "$dir_name" != "*" ]; then
-              echo "<a href=\"${dir_name}/\">${dir_name}</a>" >> index.html
-            fi
-          done
-          echo '</body></html>' >> index.html
+          # If this is the main branch, also copy files to root so that
+          # the root URL serves main branch content directly
+          if [ "$BRANCH_NAME" = "main" ]; then
+            for f in $(ls -A | grep -v -E '^(\.git|deploy)$'); do
+              cp -r "$f" "deploy/"
+            done
+            echo "Main branch files also copied to deploy root"
+          fi
 
           echo "Deployed branch: ${BRANCH_NAME} -> ${SAFE_BRANCH}"
           ls -la "${SAFE_BRANCH}/"
