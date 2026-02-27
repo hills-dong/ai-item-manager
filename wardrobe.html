@@ -875,8 +875,8 @@
         <div id="modeSection" class="sidebar-section hidden">
             <h2 class="section-title">模式</h2>
             <div class="mode-toggle">
-                <button class="mode-toggle-btn active" data-mode="wardrobe">衣橱模式</button>
-                <button class="mode-toggle-btn" data-mode="spread">摊开模式</button>
+                <button class="mode-toggle-btn active" data-mode="spread">摊开模式</button>
+                <button class="mode-toggle-btn" data-mode="wardrobe">衣橱模式</button>
             </div>
         </div>
 
@@ -1023,7 +1023,7 @@
 
         // State
         let apiKey = getApiKey();
-        let currentMode = 'wardrobe'; // 'wardrobe' or 'spread'
+        let currentMode = 'spread'; // 'wardrobe' or 'spread'
         let uploadedImage = null;
         let spreadImages = []; // Array of { dataUrl, file } for spread mode
         let identifiedItems = [];
@@ -1131,7 +1131,7 @@
             apiKey = getApiKey();
             if (apiKey) {
                 $('modeSection').classList.remove('hidden');
-                uploadSection.classList.remove('hidden');
+                showCurrentModeUpload();
             }
             setupEventListeners();
             window.addEventListener('apikey-changed', (e) => {
