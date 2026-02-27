@@ -27,16 +27,21 @@ jobs:
           path: source
 
       - name: Checkout gh-pages branch
+        id: ghpages
         uses: actions/checkout@v4
         with:
           ref: gh-pages
-          path: deploy
+          path: gh-pages
         continue-on-error: true
 
-      - name: Initialize deploy directory if gh-pages doesn't exist
+      - name: Prepare deploy directory
         run: |
-          if [ ! -d "deploy/.git" ]; then
-            mkdir -p deploy
+          mkdir -p deploy
+          if [ "${{ steps.ghpages.outcome }}" = "success" ]; then
+            echo "Restoring existing deployment from gh-pages branch"
+            rsync -a --exclude='.git' gh-pages/ deploy/
+          else
+            echo "No gh-pages branch found, starting fresh"
           fi
 
       - name: Update branch content
@@ -62,16 +67,34 @@ jobs:
           fi
 
           echo "Deployed branch: ${BRANCH_NAME} -> ${SAFE_BRANCH}"
-          ls -la "deploy/${SAFE_BRANCH}/"
+          echo "=== deploy/ contents ==="
+          ls -la deploy/
 
-      - name: Commit to gh-pages branch
+      - name: Persist to gh-pages branch
         run: |
-          cd deploy
+          REMOTE_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if [ "${{ steps.ghpages.outcome }}" = "success" ]; then
+            cd gh-pages
+            git remote set-url origin "$REMOTE_URL"
+            rsync -a --exclude='.git' ../deploy/ ./
+          else
+            rm -rf gh-pages
+            mkdir gh-pages && cd gh-pages
+            git init -b gh-pages
+            git remote add origin "$REMOTE_URL"
+            cp -r ../deploy/. ./
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --cached --quiet && echo "No changes to commit" || git commit -m "Deploy ${GITHUB_REF_NAME}"
-          git push origin gh-pages || true
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Deploy ${GITHUB_REF_NAME} (${GITHUB_SHA::7})"
+            git push origin gh-pages
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
