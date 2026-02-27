@@ -1037,11 +1037,34 @@
             updateSelectionCount();
         }
 
+        function compressImage(dataUrl, maxDim = 2048, quality = 0.9) {
+            return new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => {
+                    if (img.width <= maxDim && img.height <= maxDim && dataUrl.length < 500000) {
+                        return resolve(dataUrl);
+                    }
+                    const canvas = document.createElement('canvas');
+                    let w = img.width, h = img.height;
+                    if (w > maxDim || h > maxDim) {
+                        const scale = Math.min(maxDim / w, maxDim / h);
+                        w = Math.round(w * scale);
+                        h = Math.round(h * scale);
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.src = dataUrl;
+            });
+        }
+
         function handleFile(file) {
             if (!file.type.match(/^image\/(jpeg|png)$/)) return showError('请上传 JPG 或 PNG 格式');
             const reader = new FileReader();
-            reader.onload = e => {
-                uploadedImage = e.target.result;
+            reader.onload = async e => {
+                uploadedImage = await compressImage(e.target.result);
                 previewImage.src = uploadedImage;
                 previewImage.classList.remove('hidden');
                 uploadPlaceholder.classList.add('hidden');
