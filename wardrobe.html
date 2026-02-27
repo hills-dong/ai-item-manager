@@ -795,45 +795,52 @@
             .breadcrumb { display: none; }
 
             .btn {
-                min-height: var(--touch-target-min);
-                font-size: 14px;
+                min-height: 32px;
+                font-size: 12px;
+                padding: 4px 8px;
             }
 
             .style-btn {
-                min-height: 36px;
-                padding: 8px 12px;
-                font-size: 13px;
+                min-height: 28px;
+                padding: 4px 8px;
+                font-size: 11px;
             }
 
-            .tool-bar { padding: var(--spacing-sm); }
+            .tool-bar { padding: var(--spacing-xs) var(--spacing-sm); }
+            .tool-bar-row { gap: 4px; }
+            .tool-bar-actions { gap: 4px; }
 
             .items-grid {
                 grid-template-columns: repeat(2, 1fr);
-                gap: var(--spacing-sm);
+                gap: var(--spacing-xs);
             }
 
+            /* Keep try-on sidebar on the right, not below */
             .results-layout {
-                flex-direction: column;
+                flex-direction: row;
+            }
+            .results-main {
+                flex: 1;
+                min-width: 0;
             }
             .tryon-sidebar {
-                width: 100%;
-                border-left: none;
-                padding-left: 0;
-                border-top: 1px solid var(--border-color);
-                padding-top: var(--spacing-md);
-            }
-            .tryon-list {
-                flex-direction: row !important;
-                overflow-x: auto;
+                width: 100px;
+                flex-shrink: 0;
+                padding-left: var(--spacing-xs);
             }
             .tryon-list .item-card {
-                min-width: 120px;
-                max-width: 120px;
+                min-width: unset;
+                max-width: unset;
+            }
+            /* Smaller cards to fit 2 standard + 1 tryon in a row */
+            .item-card .item-image {
+                aspect-ratio: 3/4;
             }
         }
 
         @media (min-width: 480px) and (max-width: 767px) {
             .items-grid { grid-template-columns: repeat(3, 1fr); }
+            .tryon-sidebar { width: 120px; }
         }
 
         @media (min-width: 768px) {
@@ -956,15 +963,6 @@
                 <button id="deselectAllBtn" class="style-btn">取消</button>
                 <span id="selectionCount" class="selection-info">已选 0 项</span>
                 <div style="flex:1;"></div>
-                <div style="display:flex; align-items:center; gap:var(--spacing-xs);">
-                    <span style="font-size:11px; color:var(--text-secondary);">尺寸</span>
-                    <select id="imageSizeSelect" style="padding:2px 4px; font-size:11px; border:1px solid var(--border-color); border-radius:var(--radius); background:var(--bg-primary);">
-                        <option value="128">128px</option>
-                        <option value="256">256px</option>
-                        <option value="512">512px</option>
-                        <option value="1024" selected>1024px</option>
-                    </select>
-                </div>
                 <div style="display:flex; align-items:center; gap:var(--spacing-xs);">
                     <span style="font-size:11px; color:var(--text-secondary);">并发</span>
                     <input type="range" id="batchSizeSlider" min="1" max="10" value="10" style="width:60px; accent-color:var(--accent-primary);">
@@ -1553,7 +1551,7 @@ Example:
                             const y = (item.bbox[1] / 100) * img.height;
                             const w = (item.bbox[2] / 100) * img.width;
                             const h = (item.bbox[3] / 100) * img.height;
-                            const maxSize = parseInt($('imageSizeSelect')?.value) || 1024;
+                            const maxSize = 1024;
                             let targetW = w, targetH = h;
                             if (w > maxSize || h > maxSize) {
                                 const scale = Math.min(maxSize / w, maxSize / h);
@@ -1751,7 +1749,7 @@ Example:
                         const y = (item.bbox[1] / 100) * img.height;
                         const w = (item.bbox[2] / 100) * img.width;
                         const h = (item.bbox[3] / 100) * img.height;
-                        const maxSize = parseInt($('imageSizeSelect')?.value) || 1024;
+                        const maxSize = 1024;
                         let targetW = w, targetH = h;
                         if (w > maxSize || h > maxSize) {
                             const scale = Math.min(maxSize / w, maxSize / h);
