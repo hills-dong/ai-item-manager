@@ -67,7 +67,7 @@ jobs:
           fi
 
           echo "Deployed branch: ${BRANCH_NAME} -> ${SAFE_BRANCH}"
-          ls -la "${SAFE_BRANCH}/"
+          ls -la "deploy/${SAFE_BRANCH}/"
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
