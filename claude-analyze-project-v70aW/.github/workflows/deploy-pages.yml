@@ -1,0 +1,109 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages-deploy"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: Checkout gh-pages branch
+        id: ghpages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+        continue-on-error: true
+
+      - name: Prepare deploy directory
+        run: |
+          mkdir -p deploy
+          if [ "${{ steps.ghpages.outcome }}" = "success" ]; then
+            echo "Restoring existing deployment from gh-pages branch"
+            rsync -a --exclude='.git' gh-pages/ deploy/
+          else
+            echo "No gh-pages branch found, starting fresh"
+          fi
+
+      - name: Update branch content
+        run: |
+          BRANCH_NAME="${GITHUB_REF_NAME}"
+          SAFE_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g')
+
+          # Remove old content for this branch
+          rm -rf "deploy/${SAFE_BRANCH}"
+          mkdir -p "deploy/${SAFE_BRANCH}"
+
+          # Copy site files into branch subdirectory
+          for f in $(ls -A source | grep -v -E '^\.git$'); do
+            cp -r "source/$f" "deploy/${SAFE_BRANCH}/"
+          done
+
+          # If this is the main branch, also copy files to root
+          if [ "$BRANCH_NAME" = "main" ]; then
+            for f in $(ls -A source | grep -v -E '^\.git$'); do
+              cp -r "source/$f" "deploy/"
+            done
+            echo "Main branch files also copied to deploy root"
+          fi
+
+          echo "Deployed branch: ${BRANCH_NAME} -> ${SAFE_BRANCH}"
+          echo "=== deploy/ contents ==="
+          ls -la deploy/
+
+      - name: Persist to gh-pages branch
+        run: |
+          REMOTE_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if [ "${{ steps.ghpages.outcome }}" = "success" ]; then
+            cd gh-pages
+            git remote set-url origin "$REMOTE_URL"
+            rsync -a --exclude='.git' ../deploy/ ./
+          else
+            rm -rf gh-pages
+            mkdir gh-pages && cd gh-pages
+            git init -b gh-pages
+            git remote add origin "$REMOTE_URL"
+            cp -r ../deploy/. ./
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Deploy ${GITHUB_REF_NAME} (${GITHUB_SHA::7})"
+            git push origin gh-pages
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: deploy
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

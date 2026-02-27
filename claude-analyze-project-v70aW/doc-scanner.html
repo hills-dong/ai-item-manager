@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>证件识别 - AI 智能扫描</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
+    <link rel="stylesheet" href="nav.css?v=2">
+    <style>
+        /* ===== Design System (shared with index.html) ===== */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-tertiary: #f0f3f5;
+            --sidebar-bg: #f0f3f5;
+            --sidebar-section: #e0e8ed;
+            --sidebar-hover: #e8eef3;
+
+            --accent-primary: #3377aa;
+            --accent-primary-hover: #2a5f8a;
+
+            --text-primary: #111111;
+            --text-secondary: #666666;
+            --text-tertiary: #999999;
+            --text-muted: #cccccc;
+
+            --border-color: #eeeeee;
+            --border-sidebar: #d0dae5;
+
+            --error: #e54847;
+            --error-bg: #ffebee;
+            --success: #00b51d;
+
+            --spacing-xs: 0.375rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 0.75rem;
+            --spacing-lg: 1rem;
+
+            --sidebar-width: 260px;
+            --radius: 2px;
+            --transition: 200ms ease;
+
+            --header-height: 56px;
+            --touch-target-min: 44px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        input[type="text"],
+        input[type="password"] {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: 2px solid var(--accent-primary);
+            outline-offset: -1px;
+        }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            font-size: 13px;
+            min-height: 100vh;
+        }
+
+        /* ===== Sidebar ===== */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            position: fixed;
+            left: var(--nav-width, 60px);
+            top: 0;
+            z-index: 50;
+            bottom: 0;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-sidebar);
+        }
+
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-track { background: #e0e8ed; }
+        .sidebar::-webkit-scrollbar-thumb { background: #b8c5d0; border-radius: 3px; }
+
+        .sidebar-header {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--border-sidebar);
+        }
+
+        .sidebar-header h1 {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .sidebar-header .subtitle {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .sidebar-section {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--border-sidebar);
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: var(--spacing-md);
+        }
+
+        /* Drop Zone */
+        .drop-zone {
+            background: var(--sidebar-section);
+            border: 1px dashed var(--border-sidebar);
+            border-radius: var(--radius);
+            padding: var(--spacing-md);
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .drop-zone:hover {
+            border-color: var(--accent-primary);
+            background: var(--sidebar-hover);
+        }
+
+        .drop-zone.dragover {
+            border-color: var(--accent-primary);
+            background: rgba(51, 119, 170, 0.1);
+            border-style: solid;
+        }
+
+        .drop-zone.has-image {
+            padding: var(--spacing-xs);
+            border-style: solid;
+            border-color: var(--accent-primary);
+        }
+
+        .upload-icon {
+            width: 24px;
+            height: 24px;
+            color: var(--text-tertiary);
+            margin: 0 auto var(--spacing-xs);
+        }
+
+        .drop-zone:hover .upload-icon { color: var(--accent-primary); }
+
+        .drop-hint {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .drop-label {
+            font-size: 10px;
+            color: var(--text-tertiary);
+            margin-bottom: var(--spacing-xs);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .preview-image {
+            max-height: 100px;
+            max-width: 100%;
+            border-radius: var(--radius);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            font-size: 12px;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-xs);
+            font-family: inherit;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-primary-hover);
+            border-color: var(--accent-primary-hover);
+        }
+
+        .btn-primary:disabled {
+            background: var(--text-muted);
+            border-color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            border-color: var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        /* Spinner */
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: var(--spacing-lg);
+            border-top: 1px solid var(--border-sidebar);
+            text-align: center;
+        }
+
+        .sidebar-footer p {
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+
+        /* ===== Main Content ===== */
+        .main-content {
+            margin-left: calc(var(--nav-width, 60px) + var(--sidebar-width));
+            min-height: 100vh;
+        }
+
+        /* Breadcrumb */
+        .breadcrumb {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .breadcrumb a {
+            color: var(--text-tertiary);
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            color: var(--accent-primary);
+        }
+        .breadcrumb .separator {
+            margin: 0 var(--spacing-xs);
+            color: var(--text-muted);
+        }
+        .breadcrumb .current {
+            color: var(--text-secondary);
+        }
+
+        /* Welcome Message */
+        .welcome-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            color: var(--text-tertiary);
+            padding: var(--spacing-lg);
+        }
+
+        .welcome-icon {
+            width: 48px;
+            height: 48px;
+            color: var(--text-muted);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .welcome-message h2 {
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .welcome-message p {
+            font-size: 12px;
+        }
+
+        /* Error Toast */
+        .error-toast {
+            position: fixed;
+            bottom: var(--spacing-lg);
+            right: var(--spacing-lg);
+            background: var(--error);
+            color: white;
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border-radius: var(--radius);
+            font-size: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 999;
+        }
+
+        .hidden { display: none !important; }
+
+        /* ===== Doc Result Layout ===== */
+        .doc-result {
+            padding: var(--spacing-lg) calc(var(--spacing-lg) * 2);
+            max-width: 1000px;
+        }
+
+        .doc-result-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .doc-type-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            background: var(--accent-primary);
+            color: white;
+            border-radius: var(--radius);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .doc-images-row {
+            display: flex;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+            flex-wrap: wrap;
+        }
+
+        .doc-image-card {
+            flex: 1;
+            min-width: 200px;
+            max-width: 400px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .doc-image-card img {
+            width: 100%;
+            display: block;
+            object-fit: contain;
+            max-height: 260px;
+            background: white;
+        }
+
+        .doc-image-label {
+            padding: var(--spacing-sm);
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .doc-fields {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .doc-fields-title {
+            padding: var(--spacing-sm) var(--spacing-md);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+            background: var(--sidebar-section);
+        }
+
+        .doc-field-row {
+            display: flex;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 13px;
+        }
+
+        .doc-field-row:last-child {
+            border-bottom: none;
+        }
+
+        .doc-field-key {
+            width: 120px;
+            flex-shrink: 0;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .doc-field-value {
+            flex: 1;
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+
+        .doc-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .doc-actions .btn {
+            width: auto;
+            padding: var(--spacing-sm) var(--spacing-lg);
+        }
+
+        /* Progress in sidebar */
+        .progress-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) 0;
+        }
+
+        .progress-info span {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Mobile header */
+        .mobile-header {
+            display: none;
+            align-items: center;
+            height: var(--header-height);
+            padding: 0 var(--spacing-md);
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .hamburger-btn {
+            width: var(--touch-target-min);
+            height: var(--touch-target-min);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            margin-right: var(--spacing-sm);
+        }
+
+        .hamburger-btn svg {
+            width: 24px;
+            height: 24px;
+            color: var(--text-primary);
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+        }
+
+        .sidebar-overlay.visible {
+            display: block;
+        }
+
+        .btn, .item-card {
+            touch-action: manipulation;
+        }
+
+        /* Mobile: < 768px */
+        @media (max-width: 767px) {
+            .sidebar {
+                left: 0;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                z-index: 100;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .mobile-header {
+                display: flex;
+            }
+
+            .breadcrumb {
+                display: none;
+            }
+
+            .btn {
+                min-height: var(--touch-target-min);
+                font-size: 14px;
+            }
+
+            .doc-images-row {
+                flex-direction: column;
+            }
+
+            .doc-image-card {
+                max-width: 100%;
+            }
+
+            .doc-field-key {
+                width: 90px;
+            }
+
+            .doc-result {
+                padding: var(--spacing-md);
+            }
+
+            .doc-actions {
+                flex-direction: column;
+            }
+
+            .doc-actions .btn {
+                width: 100%;
+            }
+        }
+
+        /* Desktop: >= 768px */
+        @media (min-width: 768px) {
+            .mobile-header {
+                display: none !important;
+            }
+
+            .sidebar-overlay {
+                display: none !important;
+            }
+
+            .sidebar {
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="app-shell">
+<nav class="global-nav" id="globalNav"></nav>
+<div class="app-main">
+
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <button class="hamburger-btn" id="menuToggle" aria-label="Toggle menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12h18M3 6h18M3 18h18"/>
+            </svg>
+        </button>
+        <img src="logo.png" alt="Logo" style="width:32px; height:32px; object-fit:contain;">
+        <span style="margin-left:8px; font-weight:500; font-size:15px;">证件识别</span>
+    </header>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header" style="display:flex; align-items:center; gap:var(--spacing-sm);">
+            <img src="logo.png" alt="Logo" style="width:48px; height:48px; object-fit:contain;">
+            <div>
+                <h1>证件识别</h1>
+                <p class="subtitle">AI 智能扫描 · 字段提取</p>
+            </div>
+        </div>
+
+        <!-- Upload -->
+        <div id="uploadSection" class="sidebar-section hidden">
+            <h2 class="section-title">📄 上传证件</h2>
+
+            <!-- Front side -->
+            <div class="drop-label">正面</div>
+            <div id="dropFront" class="drop-zone">
+                <div class="placeholder-front">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="16" rx="2"/>
+                        <path d="M7 8h4M7 12h10"/>
+                    </svg>
+                    <p class="drop-hint">正面照片</p>
+                </div>
+                <img id="previewFront" class="preview-image hidden" alt="正面">
+            </div>
+            <input type="file" id="fileFront" accept="image/jpeg,image/png" hidden>
+
+            <!-- Back side -->
+            <div class="drop-label">背面（可选）</div>
+            <div id="dropBack" class="drop-zone">
+                <div class="placeholder-back">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="16" rx="2"/>
+                        <path d="M7 12h10M7 16h6"/>
+                    </svg>
+                    <p class="drop-hint">背面照片</p>
+                </div>
+                <img id="previewBack" class="preview-image hidden" alt="背面">
+            </div>
+            <input type="file" id="fileBack" accept="image/jpeg,image/png" hidden>
+
+            <div style="margin-top:var(--spacing-sm); display:flex; flex-direction:column; gap:var(--spacing-xs);">
+                <button id="scanBtn" class="btn btn-primary" disabled>开始识别</button>
+                <button id="docResetBtn" class="btn btn-secondary hidden">重置</button>
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div id="progressSection" class="sidebar-section hidden">
+            <div class="progress-info">
+                <div class="spinner"></div>
+                <span id="progressText">正在处理...</span>
+            </div>
+        </div>
+
+        <div class="sidebar-footer">
+            <p>© 2026 证件识别 · v1.1.5</p>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+            <a href="index.html">首页</a>
+            <span class="separator">›</span>
+            <a href="#">工具</a>
+            <span class="separator">›</span>
+            <span class="current">证件识别</span>
+        </nav>
+
+        <!-- Results -->
+        <section id="resultSection" class="hidden">
+            <div id="docResult" class="doc-result"></div>
+        </section>
+
+        <!-- Welcome -->
+        <div id="emptyState" class="welcome-message">
+            <svg class="welcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="4" width="18" height="16" rx="2"/>
+                <path d="M7 8h4M7 12h10M7 16h6"/>
+            </svg>
+            <h2>欢迎使用证件识别</h2>
+            <p>请从左侧上传证件照片开始识别</p>
+        </div>
+    </main>
+
+</div><!-- /app-main -->
+</div><!-- /app-shell -->
+
+<!-- Error Toast -->
+<div id="errorMessage" class="error-toast hidden">
+    <span id="errorText"></span>
+</div>
+
+<script src="nav.js?v=4"></script>
+
+<!-- jsPDF CDN (async: only needed for PDF download) -->
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+    // ===== State =====
+    let apiKey = getApiKey();
+    let frontDataUrl = null;
+    let backDataUrl = null;
+    let croppedFront = null;
+    let croppedBack = null;
+    let docType = '';
+    let docFields = null;
+
+    const $ = id => document.getElementById(id);
+
+    // Render global nav
+    renderNav('doc-scanner');
+
+    // DOM refs
+    const uploadSection = $('uploadSection');
+    const dropFront = $('dropFront');
+    const dropBack = $('dropBack');
+    const fileFront = $('fileFront');
+    const fileBack = $('fileBack');
+    const previewFront = $('previewFront');
+    const previewBack = $('previewBack');
+    const scanBtn = $('scanBtn');
+    const docResetBtn = $('docResetBtn');
+    const progressSection = $('progressSection');
+    const progressText = $('progressText');
+    const resultSection = $('resultSection');
+    const docResult = $('docResult');
+    const emptyState = $('emptyState');
+
+    // ===== Init =====
+    function init() {
+        apiKey = getApiKey();
+        if (apiKey) {
+            uploadSection.classList.remove('hidden');
+        }
+        setupEventListeners();
+
+        window.addEventListener('apikey-changed', (e) => {
+            apiKey = e.detail.key;
+            uploadSection.classList.remove('hidden');
+        });
+    }
+
+    function setupEventListeners() {
+        // Front upload
+        dropFront.onclick = () => fileFront.click();
+        dropFront.ondragover = e => { e.preventDefault(); dropFront.classList.add('dragover'); };
+        dropFront.ondragleave = e => { e.preventDefault(); dropFront.classList.remove('dragover'); };
+        dropFront.ondrop = e => { e.preventDefault(); dropFront.classList.remove('dragover'); e.dataTransfer.files[0] && handleDocFile(e.dataTransfer.files[0], 'front'); };
+        fileFront.onchange = e => e.target.files[0] && handleDocFile(e.target.files[0], 'front');
+
+        // Back upload
+        dropBack.onclick = () => fileBack.click();
+        dropBack.ondragover = e => { e.preventDefault(); dropBack.classList.add('dragover'); };
+        dropBack.ondragleave = e => { e.preventDefault(); dropBack.classList.remove('dragover'); };
+        dropBack.ondrop = e => { e.preventDefault(); dropBack.classList.remove('dragover'); e.dataTransfer.files[0] && handleDocFile(e.dataTransfer.files[0], 'back'); };
+        fileBack.onchange = e => e.target.files[0] && handleDocFile(e.target.files[0], 'back');
+
+        scanBtn.onclick = runDocScan;
+        docResetBtn.onclick = docResetAll;
+
+        // Mobile sidebar
+        const menuToggle = $('menuToggle');
+        const sidebarOverlay = $('sidebarOverlay');
+        menuToggle?.addEventListener('click', () => {
+            document.querySelector('.sidebar')?.classList.add('open');
+            sidebarOverlay?.classList.add('visible');
+            document.body.style.overflow = 'hidden';
+        });
+        sidebarOverlay?.addEventListener('click', () => {
+            document.querySelector('.sidebar')?.classList.remove('open');
+            sidebarOverlay?.classList.remove('visible');
+            document.body.style.overflow = '';
+        });
+
+        // Mobile: open sidebar only if API key is already configured
+        if (window.innerWidth < 768 && apiKey) {
+            document.querySelector('.sidebar')?.classList.add('open');
+            sidebarOverlay?.classList.add('visible');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    // ===== File handling =====
+    function handleDocFile(file, side) {
+        if (!file.type.match(/^image\/(jpeg|png)$/)) return showError('请上传 JPG 或 PNG 格式');
+        const reader = new FileReader();
+        reader.onload = e => {
+            const dataUrl = e.target.result;
+            if (side === 'front') {
+                frontDataUrl = dataUrl;
+                previewFront.src = dataUrl;
+                previewFront.classList.remove('hidden');
+                dropFront.querySelector('.placeholder-front').classList.add('hidden');
+                dropFront.classList.add('has-image');
+            } else {
+                backDataUrl = dataUrl;
+                previewBack.src = dataUrl;
+                previewBack.classList.remove('hidden');
+                dropBack.querySelector('.placeholder-back').classList.add('hidden');
+                dropBack.classList.add('has-image');
+            }
+            updateScanBtn();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function updateScanBtn() {
+        scanBtn.disabled = !frontDataUrl;
+        if (frontDataUrl) {
+            docResetBtn.classList.remove('hidden');
+        }
+    }
+
+    // ===== Main scan flow =====
+    async function runDocScan() {
+        if (!frontDataUrl || !apiKey) return;
+        scanBtn.disabled = true;
+        progressSection.classList.remove('hidden');
+
+        let countdown = 30;
+        const countdownInterval = setInterval(() => {
+            countdown--;
+            if (countdown > 0) {
+                progressText.textContent = `正在识别... ${countdown}s`;
+            } else {
+                progressText.textContent = '正在努力识别...';
+            }
+        }, 1000);
+        progressText.textContent = '正在识别... 30s';
+
+        try {
+            // Phase 1: Detect and crop both sides in parallel
+            const cropTasks = [detectAndCropDoc(frontDataUrl)];
+            if (backDataUrl) cropTasks.push(detectAndCropDoc(backDataUrl));
+
+            progressText.textContent = '裁切证件中...';
+            const cropResults = await Promise.all(cropTasks);
+
+            croppedFront = cropResults[0].croppedUrl;
+            docType = cropResults[0].docType;
+            croppedBack = cropResults[1]?.croppedUrl || null;
+
+            // Phase 2: Extract fields using OCR
+            progressText.textContent = '提取文字字段中...';
+            docFields = await extractDocFields(docType, croppedFront, croppedBack);
+
+            clearInterval(countdownInterval);
+            progressSection.classList.add('hidden');
+            scanBtn.disabled = false;
+
+            // Show results
+            renderDocResult();
+
+        } catch (error) {
+            clearInterval(countdownInterval);
+            progressSection.classList.add('hidden');
+            scanBtn.disabled = false;
+            showError(error.message);
+        }
+    }
+
+    // ===== Phase 1: Detect bbox + type, crop via Canvas =====
+    async function detectAndCropDoc(dataUrl) {
+        const base64Data = dataUrl.split(',')[1];
+        const mimeType = dataUrl.split(';')[0].split(':')[1];
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [
+                    { text: `This image contains a document/ID card. Detect the document and return a JSON object with:
+- "docType": specific document type name (e.g., "身份证", "驾驶证", "行驶证", "护照", "港澳通行证", "台湾通行证", "居住证", "社保卡", "Singapore Employment Pass", "Singapore FIN Card", "Singapore Work Permit", "Visa", "Driver's License", etc.). Use the most specific name possible, in the document's own language if identifiable.
+- "bbox": bounding box of the document as [x, y, width, height] in percentage (0-100) of image dimensions
+
+Return ONLY valid JSON, no markdown. Example:
+{"docType":"身份证","bbox":[5,10,90,80]}` },
+                    { inline_data: { mime_type: mimeType, data: base64Data } }
+                ]}],
+                generationConfig: { temperature: 0.1, maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } }
+            })
+        });
+
+        if (!response.ok) throw new Error((await response.json()).error?.message || '证件检测失败');
+
+        const result = await response.json();
+        const parts = result.candidates?.[0]?.content?.parts || [];
+        const text = parts.find(p => p.text && !p.thoughtSignature)?.text || parts.find(p => p.text)?.text;
+        if (!text) throw new Error('证件检测 API 返回为空');
+
+        const parsed = parseJsonObject(text);
+        if (!parsed.bbox || parsed.bbox.length !== 4) throw new Error('未检测到证件区域');
+
+        const croppedUrl = await cropImageByBbox(dataUrl, parsed.bbox);
+        return { croppedUrl, docType: parsed.docType || '证件' };
+    }
+
+    // ===== Canvas crop =====
+    function cropImageByBbox(dataUrl, bbox) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                // Gemini returns bbox in 0-1000 scale; normalize to 0-1
+                const maxVal = Math.max(...bbox);
+                const scale = maxVal > 100 ? 1000 : 100;
+                const pad = 0.02; // 2% padding to avoid cutting edges
+
+                const bx = Math.max(0, bbox[0] / scale - pad);
+                const by = Math.max(0, bbox[1] / scale - pad);
+                const bw = Math.min(1 - bx, bbox[2] / scale + pad * 2);
+                const bh = Math.min(1 - by, bbox[3] / scale + pad * 2);
+
+                const x = bx * img.width;
+                const y = by * img.height;
+                const w = bw * img.width;
+                const h = bh * img.height;
+
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', 0.92));
+            };
+            img.onerror = () => reject(new Error('图片加载失败'));
+            img.src = dataUrl;
+        });
+    }
+
+    // ===== Phase 2: Extract fields =====
+    async function extractDocFields(docType, frontUrl, backUrl) {
+        const parts = [
+            { text: `This image shows the front${backUrl ? ' and back' : ''} of a "${docType}". Extract ALL text fields from the document. Return a JSON object where keys are field names in Chinese and values are the extracted text.
+
+For example, for 身份证:
+{"姓名":"张三","性别":"男","民族":"汉","出生日期":"1990年1月1日","住址":"北京市...","公民身份号码":"110...","签发机关":"北京市公安局","有效期限":"2020.01.01-2040.01.01"}
+
+Return ONLY valid JSON, no markdown, no explanation. Extract every visible text field.` }
+        ];
+
+        // Add front image
+        const frontBase64 = frontUrl.split(',')[1];
+        const frontMime = frontUrl.split(';')[0].split(':')[1];
+        parts.push({ inline_data: { mime_type: frontMime, data: frontBase64 } });
+
+        // Add back image if available
+        if (backUrl) {
+            const backBase64 = backUrl.split(',')[1];
+            const backMime = backUrl.split(';')[0].split(':')[1];
+            parts.push({ inline_data: { mime_type: backMime, data: backBase64 } });
+        }
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts }],
+                generationConfig: { temperature: 0.1, maxOutputTokens: 8192, thinkingConfig: { thinkingBudget: 0 } }
+            })
+        });
+
+        if (!response.ok) throw new Error((await response.json()).error?.message || '字段提取失败');
+
+        const result = await response.json();
+        const resParts = result.candidates?.[0]?.content?.parts || [];
+        const text = resParts.find(p => p.text && !p.thoughtSignature)?.text || resParts.find(p => p.text)?.text;
+        if (!text) throw new Error('字段提取 API 返回为空');
+
+        return parseJsonObject(text);
+    }
+
+    // ===== JSON parser for objects =====
+    function parseJsonObject(text) {
+        let jsonStr = text;
+        const codeMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (codeMatch) jsonStr = codeMatch[1].trim();
+
+        const startIdx = jsonStr.indexOf('{');
+        if (startIdx === -1) throw new Error('无法解析结果');
+
+        let depth = 0, endIdx = -1;
+        for (let i = startIdx; i < jsonStr.length; i++) {
+            if (jsonStr[i] === '{') depth++;
+            if (jsonStr[i] === '}') depth--;
+            if (depth === 0) { endIdx = i; break; }
+        }
+        if (endIdx === -1) throw new Error('无法解析结果');
+
+        let str = jsonStr.substring(startIdx, endIdx + 1);
+        str = str
+            .replace(/,\s*([}\]])/g, '$1')
+            .replace(/[\x00-\x1F\x7F]/g, ' ')
+            .replace(/\n/g, ' ');
+
+        try {
+            return JSON.parse(str);
+        } catch {
+            str = str.replace(/'/g, '"').replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3');
+            try {
+                return JSON.parse(str);
+            } catch {
+                throw new Error('JSON 解析失败，请重试');
+            }
+        }
+    }
+
+    // ===== Render result =====
+    function renderDocResult() {
+        if (window.innerWidth < 768) {
+            document.querySelector('.sidebar')?.classList.remove('open');
+            $('sidebarOverlay')?.classList.remove('visible');
+            document.body.style.overflow = '';
+        }
+
+        emptyState.classList.add('hidden');
+        resultSection.classList.remove('hidden');
+
+        let imagesHtml = `
+            <div class="doc-image-card">
+                <img src="${croppedFront}" alt="正面">
+                <div class="doc-image-label">正面</div>
+            </div>`;
+
+        if (croppedBack) {
+            imagesHtml += `
+            <div class="doc-image-card">
+                <img src="${croppedBack}" alt="背面">
+                <div class="doc-image-label">背面</div>
+            </div>`;
+        }
+
+        let fieldsHtml = '';
+        if (docFields) {
+            for (const [key, value] of Object.entries(docFields)) {
+                fieldsHtml += `
+                    <div class="doc-field-row">
+                        <div class="doc-field-key">${escapeHtml(key)}</div>
+                        <div class="doc-field-value">${escapeHtml(String(value))}</div>
+                    </div>`;
+            }
+        }
+
+        docResult.innerHTML = `
+            <div class="doc-result-header">
+                <span class="doc-type-badge">${escapeHtml(docType)}</span>
+                <span style="font-size:12px; color:var(--text-tertiary);">识别完成</span>
+            </div>
+            <div class="doc-images-row">${imagesHtml}</div>
+            <div class="doc-fields">
+                <div class="doc-fields-title">提取字段</div>
+                ${fieldsHtml}
+            </div>
+            <div class="doc-actions">
+                <button class="btn btn-primary" onclick="downloadDocPdf()">下载 PDF</button>
+                <button class="btn btn-secondary" onclick="docResetAll()">重新扫描</button>
+            </div>
+        `;
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // ===== PDF generation =====
+    function downloadDocPdf() {
+        if (!window.jspdf) return showError('PDF 库加载中，请稍后重试');
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageW = 210;
+        const margin = 15;
+        const contentW = pageW - margin * 2;
+        let y = margin;
+
+        // Title
+        drawChineseText(pdf, docType + ' - 扫描件', margin, y, 16, '#333333');
+        y += 8;
+
+        // Date
+        drawChineseText(pdf, '扫描日期: ' + new Date().toLocaleDateString('zh-CN'), margin, y, 9, '#999999');
+        y += 6;
+
+        // Separator
+        pdf.setDrawColor(200);
+        pdf.line(margin, y, pageW - margin, y);
+        y += 5;
+
+        // Images side by side
+        const imgW = croppedBack ? (contentW - 5) / 2 : contentW * 0.6;
+        const imgH = imgW * 0.63; // card aspect ratio
+
+        if (croppedFront) {
+            pdf.addImage(croppedFront, 'JPEG', margin, y, imgW, imgH);
+        }
+        if (croppedBack) {
+            pdf.addImage(croppedBack, 'JPEG', margin + imgW + 5, y, imgW, imgH);
+        }
+        y += imgH + 2;
+
+        // Image labels
+        drawChineseText(pdf, '正面', margin + imgW / 2 - 3, y, 8, '#999999');
+        if (croppedBack) {
+            drawChineseText(pdf, '背面', margin + imgW + 5 + imgW / 2 - 3, y, 8, '#999999');
+        }
+        y += 6;
+
+        // Separator
+        pdf.setDrawColor(200);
+        pdf.line(margin, y, pageW - margin, y);
+        y += 5;
+
+        // Fields
+        if (docFields) {
+            drawChineseText(pdf, '提取字段', margin, y, 11, '#333333');
+            y += 6;
+
+            for (const [key, value] of Object.entries(docFields)) {
+                if (y > 275) {
+                    pdf.addPage();
+                    y = margin;
+                }
+                drawChineseText(pdf, key + ':', margin, y, 9, '#666666');
+                drawChineseText(pdf, String(value), margin + 30, y, 9, '#111111');
+                y += 5;
+            }
+        }
+
+        pdf.save(`${docType}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    }
+
+    // Draw Chinese text via Canvas bitmap (no font embedding needed)
+    // fontSize is in pt; 1pt ≈ 0.353mm
+    function drawChineseText(pdf, text, x, y, fontSizePt, color) {
+        const canvas = document.createElement('canvas');
+        const pxPerPt = 4; // render at 4x for crisp output
+        const fSizePx = fontSizePt * pxPerPt;
+        const ctx = canvas.getContext('2d');
+        ctx.font = `${fSizePx}px "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif`;
+        const metrics = ctx.measureText(text);
+        const textW = metrics.width;
+        const textH = fSizePx * 1.25;
+
+        canvas.width = Math.ceil(textW) + 4;
+        canvas.height = Math.ceil(textH) + 4;
+
+        ctx.font = `${fSizePx}px "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif`;
+        ctx.fillStyle = color || '#000000';
+        ctx.textBaseline = 'top';
+        ctx.fillText(text, 0, 2);
+
+        const imgData = canvas.toDataURL('image/png');
+        // Convert canvas pixels to mm: 1pt = 0.353mm
+        const ptToMm = 0.353;
+        const imgW = (canvas.width / pxPerPt) * ptToMm;
+        const imgH = (canvas.height / pxPerPt) * ptToMm;
+        pdf.addImage(imgData, 'PNG', x, y, imgW, imgH);
+    }
+
+    // ===== Reset =====
+    function docResetAll() {
+        frontDataUrl = null;
+        backDataUrl = null;
+        croppedFront = null;
+        croppedBack = null;
+        docType = '';
+        docFields = null;
+
+        previewFront.src = '';
+        previewFront.classList.add('hidden');
+        dropFront.querySelector('.placeholder-front').classList.remove('hidden');
+        dropFront.classList.remove('has-image');
+        fileFront.value = '';
+
+        previewBack.src = '';
+        previewBack.classList.add('hidden');
+        dropBack.querySelector('.placeholder-back').classList.remove('hidden');
+        dropBack.classList.remove('has-image');
+        fileBack.value = '';
+
+        scanBtn.disabled = true;
+        docResetBtn.classList.add('hidden');
+        progressSection.classList.add('hidden');
+        resultSection.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        docResult.innerHTML = '';
+    }
+
+    // ===== Error =====
+    function showError(message) {
+        const el = $('errorMessage');
+        $('errorText').textContent = message;
+        el.classList.remove('hidden');
+        setTimeout(() => el.classList.add('hidden'), 5000);
+    }
+
+    init();
+</script>
+</body>
+</html>

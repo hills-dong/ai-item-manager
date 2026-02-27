@@ -1,0 +1,275 @@
+/* ===== Global Navigation Bar ===== */
+:root {
+    --nav-width: 60px;
+    --nav-bg: #2c3e50;
+    --nav-hover: #34495e;
+    --nav-active: #3377aa;
+    --nav-text: #bdc3c7;
+    --nav-text-active: #ffffff;
+}
+
+.app-shell {
+    display: flex;
+    min-height: 100vh;
+}
+
+.global-nav {
+    width: var(--nav-width);
+    background: var(--nav-bg);
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 12px;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.nav-logo {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    margin-bottom: 16px;
+    border-radius: 6px;
+}
+
+.nav-items {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+    color: var(--nav-text);
+    text-decoration: none;
+    font-size: 9px;
+    gap: 3px;
+    transition: all 200ms ease;
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 0;
+}
+
+.nav-item svg {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.nav-item:hover {
+    background: var(--nav-hover);
+    color: var(--nav-text-active);
+}
+
+.nav-item.active {
+    background: var(--nav-active);
+    color: var(--nav-text-active);
+}
+
+.nav-spacer {
+    flex: 1;
+}
+
+/* API Key section at bottom */
+.nav-apikey {
+    width: 100%;
+    padding: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nav-apikey-toggle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin: 0 auto;
+    border-radius: 8px;
+    color: var(--nav-text);
+    cursor: pointer;
+    transition: all 200ms ease;
+    border: none;
+    background: none;
+    padding: 0;
+    font-size: 9px;
+    gap: 2px;
+}
+
+.nav-apikey-toggle:hover {
+    background: var(--nav-hover);
+    color: var(--nav-text-active);
+}
+
+.nav-apikey-toggle.configured {
+    color: #2ecc71;
+}
+
+.nav-apikey-panel {
+    display: none;
+    position: fixed;
+    left: var(--nav-width);
+    bottom: 12px;
+    width: 280px;
+    background: #ffffff;
+    border: 1px solid #d0dae5;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    padding: 16px;
+    z-index: 210;
+    font-size: 13px;
+}
+
+.nav-apikey-panel.open {
+    display: block;
+}
+
+.nav-apikey-panel h3 {
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.nav-apikey-panel input {
+    width: 100%;
+    padding: 8px;
+    font-size: 12px;
+    border: 1px solid #eee;
+    border-radius: 2px;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+}
+
+.nav-apikey-panel input:focus {
+    outline: 2px solid #3377aa;
+    outline-offset: -1px;
+}
+
+.nav-apikey-panel .nav-key-save {
+    width: 100%;
+    padding: 6px 12px;
+    font-size: 12px;
+    background: #3377aa;
+    color: white;
+    border: 1px solid #3377aa;
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 200ms ease;
+}
+
+.nav-apikey-panel .nav-key-save:hover {
+    background: #2a5f8a;
+}
+
+.nav-apikey-panel .nav-key-status {
+    font-size: 11px;
+    color: #999;
+    margin-top: 8px;
+}
+
+.nav-apikey-panel .nav-key-status.configured {
+    color: #00b51d;
+}
+
+.nav-apikey-panel .nav-key-link {
+    font-size: 10px;
+    color: #999;
+    margin-top: 4px;
+}
+
+.nav-apikey-panel .nav-key-link a {
+    color: #3377aa;
+    text-decoration: none;
+}
+
+/* App main content offset */
+.app-main {
+    margin-left: var(--nav-width);
+    flex: 1;
+    min-height: 100vh;
+}
+
+/* ===== Mobile: < 768px ===== */
+@media (max-width: 767px) {
+    .global-nav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: auto;
+        width: 100%;
+        height: 56px;
+        flex-direction: row;
+        padding: 0;
+        z-index: 200;
+    }
+
+    .nav-logo {
+        display: none;
+    }
+
+    .nav-items {
+        flex-direction: row;
+        justify-content: center;
+        gap: 8px;
+        flex: 1;
+        height: 100%;
+    }
+
+    .nav-item {
+        width: auto;
+        height: 100%;
+        padding: 0 16px;
+        flex-direction: column;
+        font-size: 10px;
+    }
+
+    .nav-spacer {
+        display: none;
+    }
+
+    .nav-apikey {
+        border-top: none;
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 0 8px;
+        display: flex;
+        align-items: center;
+        width: auto;
+    }
+
+    .nav-apikey-toggle {
+        width: 44px;
+        height: 44px;
+    }
+
+    .nav-apikey-panel {
+        left: auto;
+        right: 8px;
+        bottom: 64px;
+        width: calc(100vw - 16px);
+        max-width: 320px;
+    }
+
+    .app-main {
+        margin-left: 0;
+        padding-bottom: 56px;
+    }
+}
