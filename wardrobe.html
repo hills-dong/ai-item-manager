@@ -689,9 +689,26 @@
             border-top: 1px solid var(--border-color);
         }
 
+        .tryon-right {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-left: auto;
+        }
+
         .tryon-hint {
             font-size: 10px;
             color: var(--text-tertiary);
+        }
+
+        /* Try-on results panel */
+        .tryon-results-panel {
+            margin-top: var(--spacing-sm);
+            padding-top: var(--spacing-sm);
+            border-top: 1px solid var(--border-color);
+        }
+        .tryon-results-panel .items-grid {
+            margin-top: var(--spacing-xs);
         }
 
         .hidden { display: none !important; }
@@ -925,13 +942,16 @@
                 <button id="generateBtn" class="btn btn-primary" style="width:auto; padding:4px 12px;" disabled>生成标准图</button>
             </div>
             <div class="tool-bar-actions">
-                <div id="tryonAvatar" class="tryon-avatar" title="点击上传全身照">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                </div>
-                <button id="tryonBtn" class="btn btn-primary" style="width:auto; padding:4px 12px;" disabled>试穿</button>
                 <span id="tryonHint" class="tryon-hint"></span>
+                <div class="tryon-right">
+                    <div id="tryonAvatar" class="tryon-avatar" title="点击上传全身照">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </div>
+                    <button id="tryonBtn" class="btn btn-primary" style="width:auto; padding:4px 12px;">试穿</button>
+                </div>
                 <input type="file" id="tryonFileInput" accept="image/jpeg,image/png" hidden>
             </div>
+            <div id="tryonResultsPanel" class="tryon-results-panel hidden"></div>
         </div>
 
         <!-- Results -->
@@ -1063,6 +1083,7 @@
         const errorMessage = $('errorMessage');
         const errorText = $('errorText');
         const toolBar = $('toolBar');
+        const tryonResultsPanel = $('tryonResultsPanel');
         const selectAllBtn = $('selectAllBtn');
         const deselectAllBtn = $('deselectAllBtn');
         const selectionCount = $('selectionCount');
@@ -1145,7 +1166,13 @@
             // Try-on
             tryonAvatar.onclick = () => tryonFileInput.click();
             tryonFileInput.onchange = e => e.target.files[0] && handleTryOnPhoto(e.target.files[0]);
-            tryonBtn.onclick = generateTryOn;
+            tryonBtn.onclick = () => {
+                if (!tryOnPhoto) {
+                    tryonFileInput.click();
+                } else {
+                    generateTryOn();
+                }
+            };
 
             $('batchSizeSlider').oninput = e => {
                 $('batchSizeValue').textContent = e.target.value;
@@ -1184,7 +1211,6 @@
         function updateTryOnState() {
             const hasPhoto = !!tryOnPhoto;
             const hasSelection = selectedItems.size > 0;
-            tryonBtn.disabled = !hasPhoto || !hasSelection;
 
             // Check category constraint and show hint
             if (hasSelection) {
@@ -1196,16 +1222,23 @@
                 const duplicates = Object.entries(catCount).filter(([,c]) => c > 1);
                 if (duplicates.length > 0) {
                     const names = duplicates.map(([cat]) => cat).join('、');
-                    tryonHint.textContent = `试穿提示：${names}选了多件，每类最多1件`;
+                    tryonHint.textContent = `${names}选了多件，每类最多选1件`;
                     tryonHint.style.color = 'var(--error)';
-                } else if (!hasPhoto) {
-                    tryonHint.textContent = '点击头像上传全身照';
-                    tryonHint.style.color = 'var(--text-tertiary)';
+                    tryonBtn.disabled = true;
                 } else {
-                    tryonHint.textContent = '';
+                    tryonBtn.disabled = false;
+                    if (!hasPhoto) {
+                        tryonHint.textContent = '选好衣物，点击试穿上传全身照';
+                        tryonHint.style.color = 'var(--text-tertiary)';
+                    } else {
+                        tryonHint.textContent = '点击试穿生成效果图';
+                        tryonHint.style.color = 'var(--text-tertiary)';
+                    }
                 }
             } else {
-                tryonHint.textContent = '';
+                tryonHint.textContent = hasPhoto ? '勾选衣物后点击试穿' : '勾选衣物后点击试穿上传全身照';
+                tryonHint.style.color = 'var(--text-tertiary)';
+                tryonBtn.disabled = false;
             }
         }
 
@@ -1256,6 +1289,8 @@
             identifiedItems = [];
             selectedItems.clear();
             tryOnHistory = [];
+            tryonResultsPanel.innerHTML = '';
+            tryonResultsPanel.classList.add('hidden');
         }
 
         // === Spread Mode ===
@@ -1323,6 +1358,8 @@
             identifiedItems = [];
             selectedItems.clear();
             tryOnHistory = [];
+            tryonResultsPanel.innerHTML = '';
+            tryonResultsPanel.classList.add('hidden');
             $('spreadUploadPlaceholder').querySelector('.drop-hint').textContent = '拖拽或点击上传衣物照片（可多选）';
         }
 
@@ -1868,12 +1905,17 @@ LAYOUT RULES:
                 tryonAvatar.classList.add('has-photo');
                 tryonAvatar.innerHTML = `<img src="${tryOnPhoto}" alt="全身照">`;
                 updateTryOnState();
+                // Auto-generate if items are selected
+                if (selectedItems.size > 0) {
+                    generateTryOn();
+                }
             };
             reader.readAsDataURL(file);
         }
 
         async function generateTryOn() {
             if (!tryOnPhoto || selectedItems.size === 0) return;
+            tryonBtn.disabled = true;
 
             // Validate: max 1 per category
             const catCount = {};
@@ -1957,25 +1999,18 @@ RULES:
             }
 
             tryonBtn.textContent = '试穿';
-            tryonBtn.disabled = !tryOnPhoto || selectedItems.size === 0;
+            updateTryOnState();
         }
 
         function renderTryOnSection() {
-            let section = $('tryonSection');
-            if (!section) {
-                section = document.createElement('div');
-                section.id = 'tryonSection';
-                section.className = 'category-section';
-                categorizedResults.prepend(section);
+            if (tryOnHistory.length === 0) {
+                tryonResultsPanel.classList.add('hidden');
+                tryonResultsPanel.innerHTML = '';
+                return;
             }
 
-            section.innerHTML = `
-                <div class="category-header">
-                    <span class="category-icon">👤</span>
-                    <span class="category-name">试穿</span>
-                    <span class="category-count">(${tryOnHistory.length})</span>
-                </div>
-            `;
+            tryonResultsPanel.classList.remove('hidden');
+            tryonResultsPanel.innerHTML = '';
 
             const grid = document.createElement('div');
             grid.className = 'items-grid';
@@ -1999,7 +2034,7 @@ RULES:
                 grid.appendChild(card);
             });
 
-            section.appendChild(grid);
+            tryonResultsPanel.appendChild(grid);
         }
 
         function showTryOnCompare(historyIndex) {
