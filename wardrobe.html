@@ -2028,8 +2028,9 @@ ${clothingDescriptions.map((d, i) => `${i + 1}. ${d}`).join('\n')}
 
 RULES:
 - Keep the person's face, hair, pose, body proportions, and background EXACTLY the same
-- Replace ONLY the corresponding clothing category on the person with the provided garments
-- Categories NOT provided should keep the person's ORIGINAL clothing unchanged
+- COMPLETELY REMOVE all original clothing from the person first, then dress them ONLY in the provided garments
+- If the provided garments expose skin (e.g. swimwear, tank tops, shorts, crop tops), that is INTENDED — show natural bare skin in uncovered areas, do NOT keep any original clothing underneath or on top
+- The ONLY exception: if no bottoms are provided, keep the original pants/skirt; if no top is provided, keep the original top. But once a category IS provided, replace it fully regardless of how much skin it shows
 - The garments must fit naturally on the person's body — correct perspective, wrinkles, draping
 - Preserve the EXACT colors, patterns, and textures of the provided garments
 - Lighting and shadows should be consistent with the original photo
